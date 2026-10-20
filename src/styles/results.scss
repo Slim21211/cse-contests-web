@@ -1,0 +1,352 @@
+.results-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff5f0 0%, #ffffff 100%);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.results-header {
+  max-width: 800px;
+  margin: 0 auto 32px;
+  text-align: center;
+
+  h1 {
+    color: #4f2c1d;
+    font-size: 28px;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(254, 80, 0, 0.1);
+  }
+
+  .subtitle {
+    color: #fe5000;
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+}
+
+.results-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  padding: 12px 20px;
+  border: 2px solid #fe5000;
+  background: #ffffff;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #fe5000;
+
+  &:hover {
+    background: #fff5f0;
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #fe5000 0%, #ff6b2c 100%);
+    border-color: #fe5000;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(254, 80, 0, 0.3);
+  }
+}
+
+.results-grid {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.result-card {
+  background: #ffffff;
+  border: 3px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  // Золотая медаль
+  &.gold {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+    border-color: #ffd700;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+    }
+
+    .place-badge {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+    }
+  }
+
+  // Серебряная медаль
+  &.silver {
+    background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+    border-color: #c0c0c0;
+    box-shadow: 0 4px 20px rgba(192, 192, 192, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #c0c0c0 0%, #e8e8e8 50%, #c0c0c0 100%);
+    }
+
+    .place-badge {
+      background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+      box-shadow: 0 4px 12px rgba(192, 192, 192, 0.4);
+    }
+  }
+
+  // Бронзовая медаль
+  &.bronze {
+    background: linear-gradient(135deg, #fff0e6 0%, #ffffff 100%);
+    border-color: #cd7f32;
+    box-shadow: 0 4px 20px rgba(205, 127, 50, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #cd7f32 0%, #e89f6b 50%, #cd7f32 100%);
+    }
+
+    .place-badge {
+      background: linear-gradient(135deg, #cd7f32 0%, #e89f6b 100%);
+      box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
+    }
+  }
+}
+
+.place-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  background: #fe5000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.result-card-media {
+  width: 100%;
+  aspect-ratio: 16/9; // 🆕 Фиксированное соотношение сторон
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #000; // 🆕 Черный фон для видео
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex; // 🆕 Flexbox для центрирования
+  align-items: center;
+  justify-content: center;
+  position: relative; // 🆕 Для позиционирования контента внутри
+
+  // 🆕 Стили для видео и изображений внутри
+  video,
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; // 🆕 Сохраняем пропорции, не обрезаем
+  }
+}
+
+.result-card-info {
+  margin-bottom: 16px;
+
+  h3 {
+    color: #4f2c1d;
+    font-size: 20px;
+    margin: 0 0 12px 0;
+    font-weight: 600;
+    padding-right: 70px; // 🆕 Отступ для бейджа места
+  }
+
+  p {
+    color: #666;
+    font-size: 15px;
+    margin: 0 0 6px 0;
+    line-height: 1.5;
+
+    strong {
+      color: #4f2c1d;
+      font-weight: 600;
+    }
+  }
+}
+
+.result-card-stats {
+  display: flex;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .stat-label {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fe5000;
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+.no-access {
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 400px;
+  margin: 0 auto;
+
+  .icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    color: #4f2c1d;
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #666;
+    font-size: 16px;
+  }
+}
+
+.back-link {
+  display: inline-block;
+  color: #fe5000;
+  text-decoration: none;
+  font-size: 15px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    color: #e54800;
+    transform: translateX(-4px);
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+// Адаптив для мобильных
+@media (max-width: 600px) {
+  .result-card {
+    padding: 16px;
+  }
+
+  .place-badge {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    top: 12px;
+    right: 12px;
+  }
+
+  .result-card-info h3 {
+    font-size: 18px;
+    padding-right: 60px;
+  }
+
+  .result-card-stats {
+    gap: 16px;
+  }
+
+  .stat .stat-value {
+    font-size: 18px;
+  }
+}
+
+.place-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-width: 56px; // 🆕 min-width вместо width для номеров места
+  height: 56px;
+  padding: 0 8px; // 🆕 Padding для номеров
+  background: #fe5000;
+  border-radius: 50%; // 🆕 Для цифр будет овал при необходимости
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  animation: pulse 2s infinite;
+
+  // 🆕 Для номеров места (не эмодзи)
+  &:not(:has(img)) {
+    font-size: 20px; // Меньше шрифт для цифр
+  }
+}

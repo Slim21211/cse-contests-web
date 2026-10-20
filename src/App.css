@@ -1,0 +1,174 @@
+.app {
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.app h1 {
+  text-align: center;
+  color: #4f2c1d;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.welcome {
+  text-align: center;
+  color: #fe5000;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+  text-align: center;
+}
+
+.loading-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.loading-text {
+  font-size: 18px;
+  color: #666;
+  margin-top: 0;
+}
+
+.contests-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contest-card {
+  display: block;
+  background: #ffffff;
+  border: 2px solid #fe5000;
+  border-radius: 16px;
+  padding: 20px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.contest-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(254, 80, 0, 0.2);
+}
+
+.contest-card:active {
+  transform: translateY(0);
+}
+
+.contest-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.contest-card h2 {
+  color: #4f2c1d;
+  font-size: 20px;
+  margin: 0 0 4px 0;
+}
+
+.contest-card p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+.user-id {
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  margin-top: 24px;
+}
+
+/* Кнопка админ-панели */
+.admin-link {
+  display: block;
+  text-align: center;
+  margin-top: 24px;
+  padding: 14px 20px;
+  background: #4f2c1d;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-link:hover {
+  background: #3a2016;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 44, 29, 0.3);
+}
+
+.admin-link:active {
+  transform: translateY(0);
+}
+
+.auth-required {
+  text-align: center;
+  padding: 40px 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.auth-required .icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.auth-required h2 {
+  color: #4f2c1d;
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.auth-required p {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.voting-footer {
+  min-height: 100px;
+  padding: 20px 0;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.logout-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
