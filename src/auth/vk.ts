@@ -43,6 +43,66 @@ const completeLogin = async (code: string, deviceId: string): Promise<AppUser> =
   };
 };
 
+// ---------- вход через приложение VK на телефоне ----------
+// На телефоне VK открывает приложение, а затем возвращает человека в браузер на
+// VITE_VK_REDIRECT_URL (/auth/vk) с одноразовым кодом в адресе. PKCE-верификатор
+// SDK хранит в cookie нашего домена, поэтому обмен кода работает и в новой вкладке.
+
+const RETURN_TO_KEY = 'vk-return-to';
+
+/** Запоминает страницу, с которой начат вход, чтобы вернуть на неё после /auth/vk. */
+export const rememberReturnTo = (path: string) => {
+  try {
+    localStorage.setItem(RETURN_TO_KEY, path);
+  } catch {
+    /* без localStorage вернём на главную */
+  }
+};
+
+export const takeReturnTo = () => {
+  try {
+    const path = localStorage.getItem(RETURN_TO_KEY);
+    localStorage.removeItem(RETURN_TO_KEY);
+    // Только пути нашего сайта, не внешние адреса.
+    return path && path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/auth/') ? path : '/';
+  } catch {
+    return '/';
+  }
+};
+
+/** Достаёт code и device_id из адреса возврата (query, hash или JSON в payload). */
+export const readVkRedirectParams = (location: Location) => {
+  const params = new URLSearchParams(location.search);
+  new URLSearchParams(location.hash.replace(/^#/, '')).forEach((v, k) => {
+    if (!params.has(k)) params.set(k, v);
+  });
+
+  let code = params.get('code');
+  let deviceId = params.get('device_id');
+  const payload = params.get('payload');
+  if ((!code || !deviceId) && payload) {
+    try {
+      const data = JSON.parse(payload);
+      code ??= data.code;
+      deviceId ??= data.device_id;
+    } catch {
+      /* payload не JSON — игнорируем */
+    }
+  }
+  return code && deviceId ? { code, deviceId } : null;
+};
+
+const exchanging = new Map<string, Promise<AppUser>>();
+
+/** Обменивает код из адреса возврата на сессию. Один код — один обмен (StrictMode вызывает эффект дважды). */
+export const completeVkRedirect = (code: string, deviceId: string): Promise<AppUser> => {
+  if (!exchanging.has(code)) {
+    init();
+    exchanging.set(code, completeLogin(code, deviceId));
+  }
+  return exchanging.get(code)!;
+};
+
 /** Сессия VK закончилась — пользователю нужно войти заново. */
 export class VkSessionExpiredError extends Error {
   constructor() {

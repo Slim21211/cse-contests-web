@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { renderVkOneTap, isVkConfigured } from './vk';
+import { renderVkOneTap, isVkConfigured, rememberReturnTo } from './vk';
 import { setSessionUser } from './session';
 
 /** Кнопка «Войти через VK ID» (виджет One Tap). После входа страница обновится сама. */
@@ -9,6 +9,8 @@ const VkLoginButton = () => {
 
   useEffect(() => {
     if (!ref.current || !isVkConfigured()) return;
+    // Если вход уйдёт в приложение VK (телефон), после /auth/vk вернём сюда.
+    rememberReturnTo(window.location.pathname + window.location.search);
     return renderVkOneTap(ref.current, setSessionUser, setError);
   }, []);
 

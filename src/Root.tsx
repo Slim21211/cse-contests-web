@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AdminGate } from './auth';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AdminGate, VkCallback } from './auth';
 
 import App from './App.tsx';
 
@@ -42,8 +42,8 @@ const Root = () => (
       {/* Результаты — открыты всем */}
       <Route path="/results" element={<Results />} />
 
-      {/* Адрес возврата VK ID (VITE_VK_REDIRECT_URL): SDK сам закрывает окно входа */}
-      <Route path="/auth/vk" element={<Navigate to="/" replace />} />
+      {/* Адрес возврата VK ID (VITE_VK_REDIRECT_URL): на телефоне сюда приходит код входа */}
+      <Route path="/auth/vk" element={<VkCallback />} />
     </Routes>
   </BrowserRouter>
 );
