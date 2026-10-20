@@ -8,6 +8,11 @@ export interface AppUser {
   /** Есть, только если запрошен scope phone. */
   phone?: string;
   provider: AuthProvider;
-  /** Токен VK — нужен для выхода и будущей серверной проверки голоса. */
+  /** Токен VK: им бэкенд проверяет, кто загружает файл. Живёт ~1 час. */
   accessToken?: string;
+  /** Для продления accessToken без повторного входа. */
+  refreshToken?: string;
+  deviceId?: string;
+  /** Когда истекает accessToken (мс, Date.now()). */
+  expiresAt?: number;
 }

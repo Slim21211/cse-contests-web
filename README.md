@@ -21,7 +21,7 @@ npm run dev            # https://localhost (порт 443, самоподписа
 | `VITE_VK_APP_ID` | да | ID приложения в кабинете VK ID |
 | `VITE_VK_REDIRECT_URL` | да | посимвольно как «Доверенный Redirect URL» в кабинете (`https://localhost/auth/vk` локально, `https://contests.cse-hr.ru/auth/vk` в проде) |
 | `VITE_ADMIN_ONLY` | нет | `true` — сайт открыт только пользователям из таблицы `admins` (кроме `/results`) |
-| `VITE_UPLOAD_API_URL` | нет | бэкенд загрузки файлов. Пусто — формы сообщат, что загрузка временно недоступна |
+| `VITE_UPLOAD_API_URL` | нет | адрес функций загрузки. По умолчанию `<VITE_SUPABASE_URL>/functions/v1`, то есть Edge Function `uploads` из репозитория cse-contests-api |
 | `VITE_SUBMISSION_DEADLINE` | нет | окончание приёма работ, например `2026-12-15T15:00:00+03:00`. Пусто — приём открыт |
 
 ## Деплой на GitHub Pages
@@ -31,7 +31,7 @@ npm run dev            # https://localhost (порт 443, самоподписа
 1. Settings → Pages → Source: **GitHub Actions**, Custom domain: `contests.cse-hr.ru`, Enforce HTTPS.
 2. Settings → Secrets and variables → Actions:
    - **Secrets:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VK_APP_ID`;
-   - **Variables** (по мере готовности): `VITE_UPLOAD_API_URL`, `VITE_SUBMISSION_DEADLINE`.
+   - **Variables** (необязательно): `VITE_SUBMISSION_DEADLINE`, `VITE_UPLOAD_API_URL`.
 3. DNS: `CNAME contests → slim21211.github.io`. Файл `public/CNAME` уже в проекте.
 4. Кабинет VK ID: базовый домен `contests.cse-hr.ru`, Redirect URL `https://contests.cse-hr.ru/auth/vk`.
 
@@ -42,7 +42,7 @@ npm run dev            # https://localhost (порт 443, самоподписа
 | Путь | Доступ |
 |---|---|
 | `/` | главная: подача работ и голосование |
-| `/child-form`, `/team-form`, `/individual-form` | подача работ |
+| `/child-form`, `/team-form`, `/individual-form` | подача работ (нужен вход) |
 | `/vote/child`, `/vote/team`, `/vote/individual` | голосование (нужен вход) |
 | `/admin` | модерация (вход + запись в `admins`) |
 | `/results` | открыто всем, всегда |
@@ -57,7 +57,8 @@ src/auth/         вход: vk.ts (SDK VK ID), VkLoginButton, session (localStor
                   useCurrentUser + logout, useIsAdmin, AdminGate, AuthRequired
 src/config.ts     адрес загрузки и срок приёма работ (из env)
 src/pages/        forms/, voting/, admin/, results/
-src/utils/uploadUtils.ts  загрузка больших файлов чанками по 8 МБ с прогрессом и ретраями
+src/utils/uploadUtils.ts  загрузка: части по 8 МБ уходят напрямую в VK Cloud (3 параллельно),
+                          с прогрессом, ретраями и отменой; Edge Function `uploads` только подписывает ссылки
 supabase/         SQL-миграция Telegram → VK (уже применена)
 ```
 
@@ -67,5 +68,5 @@ supabase/         SQL-миграция Telegram → VK (уже применен�
 
 ## Известные ограничения
 
-- **Загрузка файлов** работает только после того, как восстановлен бэкенд (`/upload-start`, `/upload-part`, `/upload-complete`) и задан `VITE_UPLOAD_API_URL`.
+- **Загрузка файлов** работает, когда задеплоена Edge Function `uploads` и у бакета настроен CORS. Оба шага описаны в README cse-contests-api.
 - **Голоса** пишутся из браузера по anon-ключу, поэтому при открытом RLS голос можно подделать. Перед открытием голосования его нужно перенести в серверную функцию, которая проверяет токен VK.

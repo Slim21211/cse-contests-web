@@ -10,7 +10,7 @@ import {
 } from '../../utils/uploadUtils';
 import '../../styles/form.scss';
 import { isSubmissionClosed as checkSubmissionClosed } from '../../config';
-import { useCurrentUser } from '../../auth';
+import { useCurrentUser, AuthRequired } from '../../auth';
 
 
 const Team = () => {
@@ -52,6 +52,18 @@ const Team = () => {
     );
   }
 
+  // Загрузка файла проверяет VK-токен на сервере — без входа форму не показываем.
+  if (!user) {
+    return (
+      <AuthRequired
+        containerClassName="contest-form-container"
+        innerClassName="contest-form-wrapper submission-closed"
+        showBackLink
+        message="Войдите, чтобы отправить работу на конкурс."
+      />
+    );
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -64,10 +76,9 @@ const Team = () => {
       if (!file)
         throw { user: 'Пожалуйста, выберите файл', log: 'No file selected.' };
 
-      const fileName = `team_${Date.now()}_${file.name}`;
 
       // Используем вынесенную функцию загрузки
-      const publicUrl = await uploadFileMultipart(file, fileName, {
+      const publicUrl = await uploadFileMultipart(file, 'team', {
         userId: user?.id,
         onProgress: setUploadProgress,
         onRetrying: setIsRetrying,
@@ -95,7 +106,7 @@ const Team = () => {
 
         await logUploadError({
           vk_user_id: user?.id,
-          file_name: fileName,
+          file_name: file.name,
           file_size: file.size,
           file_type: file.type,
           error_stage: 'supabase',

@@ -6,8 +6,10 @@ import type { AppUser } from './types';
 export const useIsAdmin = (user: AppUser | null) => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
+  const userId = user?.id;
+
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setIsAdmin(false);
       return;
     }
@@ -16,7 +18,7 @@ export const useIsAdmin = (user: AppUser | null) => {
     supabase
       .from('admins')
       .select('id')
-      .eq('vk_user_id', user.id)
+      .eq('vk_user_id', userId)
       .maybeSingle()
       .then(({ data }) => {
         if (!cancelled) setIsAdmin(!!data);
@@ -24,7 +26,7 @@ export const useIsAdmin = (user: AppUser | null) => {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [userId]);
 
   return isAdmin;
 };

@@ -1,7 +1,13 @@
 // Настройки конкурса, задаются через переменные окружения при сборке.
 
-/** Адрес бэкенда загрузки файлов (multipart в VK Cloud). Пусто — загрузка недоступна. */
-export const UPLOAD_API_URL = (import.meta.env.VITE_UPLOAD_API_URL ?? '').replace(/\/$/, '');
+/**
+ * Адрес функций загрузки (Supabase Edge Function «uploads», репозиторий cse-contests-api).
+ * По умолчанию — функции того же проекта Supabase: <VITE_SUPABASE_URL>/functions/v1.
+ */
+export const UPLOAD_API_URL = (
+  import.meta.env.VITE_UPLOAD_API_URL ||
+  (import.meta.env.VITE_SUPABASE_URL ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1` : '')
+).replace(/\/$/, '');
 
 /** Окончание приёма работ, ISO-строка с часовым поясом: 2026-12-15T15:00:00+03:00. Пусто — приём открыт. */
 const deadlineRaw = import.meta.env.VITE_SUBMISSION_DEADLINE;

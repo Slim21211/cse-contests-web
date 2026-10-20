@@ -119,7 +119,7 @@ const ChildVoting = () => {
     };
 
     fetchData();
-  }, [user, userLoading]);
+  }, [user?.id, userLoading]);
 
   const handleRating = async (submissionId: string, rating: number) => {
     if (!user || !votingEnabled) return;
