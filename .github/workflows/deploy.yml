@@ -34,7 +34,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_VK_APP_ID: ${{ secrets.VITE_VK_APP_ID }}
           VITE_VK_REDIRECT_URL: https://contests.cse-hr.ru/auth/vk
-          VITE_ADMIN_ONLY: 'true'
+          VITE_ADMIN_ONLY: 'false'
           # Repository variables (Settings → Secrets and variables → Actions → Variables), необязательные
           VITE_UPLOAD_API_URL: ${{ vars.VITE_UPLOAD_API_URL }}
           VITE_SUBMISSION_DEADLINE: ${{ vars.VITE_SUBMISSION_DEADLINE }}
