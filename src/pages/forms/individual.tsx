@@ -1,16 +1,17 @@
 import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import type { IndividualContestSubmission } from '../../types/database';
 import FileUpload from '../../components/fileUpload/fileUpload';
 import {
-  uploadFileMultipart,
+  uploadSubmissionFile,
   logUploadError,
   getConnectionInfo,
 } from '../../utils/uploadUtils';
+import { insertSubmission } from '../../utils/submissions';
+import SubmissionSuccess from '../../components/submissionSuccess/submissionSuccess';
 import '../../styles/form.scss';
 import { isSubmissionClosed as checkSubmissionClosed } from '../../config';
-import { useCurrentUser, AuthRequired } from '../../auth';
+import { useCurrentUser, AuthRequired, useEnsureVkSession } from '../../auth';
 
 
 const Individual = () => {
@@ -27,6 +28,9 @@ const Individual = () => {
   const [success, setSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+
+  // Продлеваем/проверяем вход через VK сразу, а не в момент отправки.
+  useEnsureVkSession(user);
 
   const isSubmissionClosed = checkSubmissionClosed();
 
@@ -64,6 +68,24 @@ const Individual = () => {
     );
   }
 
+  // После отправки форму скрываем: повторно ту же работу не отправить.
+  if (success) {
+    const submitAnother = () => {
+      setFile(null);
+      setTitle('');
+      setUploadProgress(0);
+      setError(null);
+      setSuccess(false);
+    };
+    return (
+      <div className="contest-form-container">
+        <div className="contest-form-wrapper">
+          <SubmissionSuccess onSubmitAnother={submitAnother} />
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -78,7 +100,7 @@ const Individual = () => {
 
 
       // Используем вынесенную функцию загрузки
-      const publicUrl = await uploadFileMultipart(file, 'individual', {
+      const { fileUrl, posterUrl } = await uploadSubmissionFile(file, 'individual', {
         userId: user?.id,
         onProgress: setUploadProgress,
         onRetrying: setIsRetrying,
@@ -93,14 +115,13 @@ const Individual = () => {
           department,
           city,
           title,
-          file_url: publicUrl,
+          file_url: fileUrl,
+        ...(posterUrl ? { poster_url: posterUrl } : {}),
           vk_user_id: user?.id,
           is_active: true,
         };
 
-      const { error: insertError } = await supabase
-        .from('individual_contest')
-        .insert(submission);
+      const insertError = await insertSubmission('individual_contest', submission);
 
       if (insertError) {
         const connectionInfo = getConnectionInfo();
@@ -252,11 +273,6 @@ const Individual = () => {
 
           {error && <div className="error-message">{error.user}</div>}
 
-          {success && (
-            <div className="success-message">
-              ✅ Заявка успешно отправлена!
-            </div>
-          )}
 
           <button
             type="submit"

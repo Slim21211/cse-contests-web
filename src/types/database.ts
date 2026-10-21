@@ -8,6 +8,8 @@ export interface ChildContestSubmission {
   title: string;
   vk_user_id?: number;
   file_url: string;
+  /** Обложка видео (кадр из начала ролика). Нет у прошлогодних работ и не-видео. */
+  poster_url?: string | null;
   rotation?: number; // 🆕
   is_active: boolean;
   moderated_at?: string;
@@ -24,6 +26,8 @@ export interface TeamContestSubmission {
   participants: string;
   vk_user_id?: number;
   file_url: string;
+  /** Обложка видео (кадр из начала ролика). Нет у прошлогодних работ и не-видео. */
+  poster_url?: string | null;
   rotation?: number; // 🆕
   is_active: boolean;
   moderated_at?: string;
@@ -40,6 +44,8 @@ export interface IndividualContestSubmission {
   title: string;
   vk_user_id?: number;
   file_url: string;
+  /** Обложка видео (кадр из начала ролика). Нет у прошлогодних работ и не-видео. */
+  poster_url?: string | null;
   rotation?: number; // 🆕
   is_active: boolean;
   moderated_at?: string;

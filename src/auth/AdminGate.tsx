@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useCurrentUser, logout } from './useCurrentUser';
 import { useIsAdmin } from './useIsAdmin';
 import AuthRequired from './AuthRequired';
+import Loader from '../components/loader/loader';
 
 // Тестовый режим: при VITE_ADMIN_ONLY=true сайт открыт только пользователям из таблицы admins.
 // Чтобы открыть сайт всем — убрать переменную (или поставить false) и пересобрать.
@@ -15,24 +16,12 @@ const AdminGate = ({ children }: { children: ReactNode }) => {
 
   if (!user) {
     return (
-      <div className="app">
-        <AuthRequired
-          containerClassName="container"
-          innerClassName="auth-required"
-          message="Сайт в тестовом режиме. Войдите, чтобы продолжить."
-        />
-      </div>
+      <AuthRequired message="Сайт пока в тестовом режиме. Войдите, чтобы продолжить." />
     );
   }
 
   if (isAdmin === null) {
-    return (
-      <div className="app">
-        <div className="loading-container">
-          <p className="loading-text">Проверка доступа...</p>
-        </div>
-      </div>
-    );
+    return <Loader fullScreen label="Проверяем доступ…" />;
   }
 
   if (!isAdmin) {
@@ -40,7 +29,6 @@ const AdminGate = ({ children }: { children: ReactNode }) => {
       <div className="app">
         <div className="container">
           <div className="auth-required">
-            <div className="icon">🚧</div>
             <h2>Сайт в тестовом режиме</h2>
             <p>Доступ пока открыт только организаторам.</p>
             <p className="user-id">

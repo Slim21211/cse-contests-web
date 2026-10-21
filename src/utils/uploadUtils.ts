@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { UPLOAD_API_URL } from '../config';
 import { getFreshAccessToken, VkSessionExpiredError } from '../auth/vk';
 import { setSessionUser } from '../auth/session';
+import { createVideoPoster, isVideoFile } from './videoPoster';
 
 // Загрузка файла в VK Cloud напрямую из браузера:
 //   1. POST /uploads/start   — бэкенд создаёт multipart-загрузку и выдаёт подписанные ссылки на части;
@@ -92,9 +93,12 @@ const api = async <T,>(path: string, body: unknown): Promise<T> => {
   try {
     token = await getFreshAccessToken();
   } catch (err) {
-    if (err instanceof VkSessionExpiredError) setSessionUser(null);
+    const expired = err instanceof VkSessionExpiredError;
+    if (expired) setSessionUser(null);
     throw {
-      user: 'Сессия VK истекла. Войдите заново и отправьте форму ещё раз.',
+      user: expired
+        ? 'Сессия VK истекла. Войдите заново и отправьте форму ещё раз.'
+        : 'Не удалось связаться с VK. Проверьте интернет и попробуйте ещё раз.',
       log: `VK token unavailable: ${err}`,
     } satisfies UploadError;
   }
@@ -316,4 +320,32 @@ export const uploadFileMultipart = async (
       log: `upload-complete: ${err}`,
     } satisfies UploadError;
   }
+};
+
+/**
+ * Загрузка работы целиком: для видео сначала делаем обложку (кадр из начала ролика),
+ * затем грузим сам файл и обложку. Обложка необязательна — её ошибка не мешает отправке.
+ */
+export const uploadSubmissionFile = async (
+  file: File,
+  contest: ContestType,
+  callbacks: UploadCallbacks
+): Promise<{ fileUrl: string; posterUrl: string | null }> => {
+  const poster = isVideoFile(file) ? await createVideoPoster(file) : null;
+
+  const fileUrl = await uploadFileMultipart(file, contest, callbacks);
+
+  let posterUrl: string | null = null;
+  if (poster) {
+    try {
+      posterUrl = await uploadFileMultipart(poster, contest, {
+        userId: callbacks.userId,
+        onProgress: () => undefined,
+        onRetrying: () => undefined,
+      });
+    } catch (err) {
+      console.warn('Обложка видео не загрузилась, работа отправляется без неё:', err);
+    }
+  }
+  return { fileUrl, posterUrl };
 };

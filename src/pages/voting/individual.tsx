@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useCurrentUser, AuthRequired } from '../../auth';
 import type { IndividualContestSubmission } from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
+import Loader from '../../components/loader/loader';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 
 import '../../styles/voting.scss';
@@ -149,7 +150,7 @@ const IndividualVoting = () => {
   if (userLoading || loading) {
     return (
       <div className="voting-container">
-        <div className="loading">Загрузка...</div>
+        <Loader label="Загрузка работ…" />
       </div>
     );
   }
@@ -204,6 +205,7 @@ const IndividualVoting = () => {
                 <FileRenderer
                   filePath={submission.file_url}
                   rotation={submission.rotation || 0}
+                  posterUrl={submission.poster_url}
                 />
               </div>
 

@@ -7,6 +7,7 @@ import type {
   IndividualContestSubmission,
 } from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
+import Loader from '../../components/loader/loader';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 import '../../styles/results.scss';
 
@@ -290,7 +291,7 @@ const Results = () => {
       </div>
 
       {loading ? (
-        <div className="loading">Загрузка результатов...</div>
+        <Loader label="Загрузка результатов…" />
       ) : results.length === 0 ? (
         <div className="no-results">
           <p>Пока нет результатов голосования</p>
@@ -312,6 +313,7 @@ const Results = () => {
                 <FileRenderer
                   filePath={item.submission.file_url}
                   rotation={item.submission.rotation || 0}
+                  posterUrl={item.submission.poster_url}
                 />
               </div>
 

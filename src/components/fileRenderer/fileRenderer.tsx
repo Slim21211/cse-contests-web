@@ -5,16 +5,20 @@ import styles from './fileRenderer.module.scss';
 interface FileRendererProps {
   filePath: string;
   rotation?: number;
+  /** Обложка видео: если есть, сначала показываем её, а видео грузим по клику. */
+  posterUrl?: string | null;
 }
 
 const FileRenderer: React.FC<FileRendererProps> = ({
   filePath,
   rotation = 0,
+  posterUrl,
 }) => {
   const [showLightbox, setShowLightbox] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [videoStarted, setVideoStarted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // 🆕 КРИТИЧЕСКИ ВАЖНО: Сбрасываем состояние при размонтировании
@@ -32,6 +36,7 @@ const FileRenderer: React.FC<FileRendererProps> = ({
   // 🆕 Сбрасываем состояние при смене файла
   useEffect(() => {
     setVideoError(false);
+    setVideoStarted(false);
   }, [filePath]);
 
   if (!filePath) {
@@ -81,8 +86,25 @@ const FileRenderer: React.FC<FileRendererProps> = ({
       }
     };
 
-    // 🆕 Уникальный URL каждый раз с timestamp
-    const videoUrl = `${url}?v=${Date.now()}`;
+    // Обложка вместо тяжёлого видео: ролик начинает грузиться только по клику.
+    if (posterUrl && !videoStarted) {
+      return (
+        <div className={styles.mediaContainer}>
+          <button
+            type="button"
+            className={styles.posterButton}
+            onClick={() => setVideoStarted(true)}
+            aria-label="Смотреть видео"
+          >
+            <img src={posterUrl} alt="" loading="lazy" className={styles.media} />
+            <span className={styles.playIcon} aria-hidden="true" />
+          </button>
+        </div>
+      );
+    }
+
+    // Без cache-buster: файлы неизменны, браузер может брать видео из кэша.
+    const videoUrl = url;
 
     return (
       <div className={styles.mediaContainer}>
@@ -113,6 +135,8 @@ const FileRenderer: React.FC<FileRendererProps> = ({
             controls
             playsInline
             preload="metadata"
+            autoPlay={videoStarted}
+            poster={posterUrl ?? undefined}
             className={styles.media}
             onError={() => {
               setVideoError(true);

@@ -313,3 +313,56 @@
     text-decoration: underline;
   }
 }
+
+// Экран после успешной отправки
+.submission-success {
+  background: var(--color-white);
+  border-radius: 16px;
+  border: 2px solid var(--color-orange);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(79, 44, 29, 0.1);
+
+  h2 {
+    color: var(--color-brown);
+    font-size: 24px;
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.submission-success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+
+  .submit-button {
+    display: block;
+    margin-top: 0;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+}
+
+.secondary-button {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: var(--color-orange);
+  border: 2px solid var(--color-orange);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(254, 80, 0, 0.06);
+  }
+}

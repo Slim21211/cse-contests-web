@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { completeVkRedirect, readVkRedirectParams, takeReturnTo } from './vk';
 import { setSessionUser } from './session';
+import Loader from '../components/loader/loader';
 
 /**
  * Страница /auth/vk — адрес возврата VK ID (VITE_VK_REDIRECT_URL).
@@ -30,22 +31,17 @@ const VkCallback = () => {
       });
   }, [navigate]);
 
+  if (!error) return <Loader fullScreen label="Завершаем вход через VK…" />;
+
   return (
     <div className="app">
       <div className="container">
         <div className="auth-required">
-          {error ? (
-            <>
-              <div className="icon">⚠️</div>
-              <h2>Вход не завершён</h2>
-              <p>{error}</p>
-              <Link to="/" className="admin-link">
-                На главную
-              </Link>
-            </>
-          ) : (
-            <p className="loading-text">Завершаем вход через VK…</p>
-          )}
+          <h2>Вход не завершён</h2>
+          <p>{error}</p>
+          <Link to="/" className="admin-link">
+            На главную
+          </Link>
         </div>
       </div>
     </div>

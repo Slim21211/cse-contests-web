@@ -8,6 +8,7 @@ import type {
   IndividualContestSubmission,
 } from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
+import Loader from '../../components/loader/loader';
 import '../../styles/admin.scss';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 
@@ -250,7 +251,7 @@ const Admin = () => {
   if (userLoading) {
     return (
       <div className="admin-container">
-        <div className="loading">Загрузка...</div>
+        <Loader label="Загрузка работ…" />
       </div>
     );
   }
@@ -314,7 +315,7 @@ const Admin = () => {
       </div>
 
       {loading ? (
-        <div className="loading">Загрузка...</div>
+        <Loader label="Загрузка работ…" />
       ) : (
         <div className="admin-grid">
           {submissions.map((submission) => (
@@ -327,6 +328,7 @@ const Admin = () => {
                 <FileRenderer
                   filePath={submission.file_url}
                   rotation={submission.rotation || 0}
+                  posterUrl={submission.poster_url}
                 />
               </div>
 

@@ -138,6 +138,8 @@ export const getFreshAccessToken = async (): Promise<string> => {
       return tokens.access_token;
     } catch (err) {
       console.error('VK token refresh failed:', err);
+      // Нет сети — это не повод разлогинивать: пробросим как есть, проверим позже.
+      if (err instanceof TypeError || (typeof navigator !== 'undefined' && !navigator.onLine)) throw err;
       throw new VkSessionExpiredError();
     } finally {
       refreshing = null;
