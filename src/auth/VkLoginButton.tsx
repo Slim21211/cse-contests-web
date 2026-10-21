@@ -23,7 +23,7 @@ const VkLoginButton = () => {
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 320, margin: '8px auto 0' }}>
+    <div style={{ width: '100%' }}>
       <div ref={ref} />
       {error && <p style={{ color: '#c00', marginTop: 8 }}>{error}</p>}
     </div>

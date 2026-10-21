@@ -1,73 +1,228 @@
+// Страница входа. Телефон: оранжевая шапка + белый лист снизу.
+// От 900px: две половины — слева шапка, справа вход.
+
+$brand: #e8490e;
+$brown: #4f2c1d;
+$muted: #6b5d55;
+$line: #f1e7e0;
+$display: 'Unbounded', 'Golos Text', system-ui, sans-serif;
+$text:
+  'Golos Text',
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  Roboto,
+  sans-serif;
+
 .page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  box-sizing: border-box;
-  background: var(--color-white, #fff);
-}
-
-.card {
-  width: 100%;
-  max-width: 420px;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: $brand;
+  font-family: $text;
+  color: $brown;
+
+  @media (min-width: 900px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    background: #fff;
+  }
+}
+
+// ——— Шапка ———
+
+.brand {
+  position: relative;
+  overflow: hidden;
+  flex: 1 0 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  padding: 28px 24px 40px;
+  background: $brand;
+
+  @media (min-width: 900px) {
+    justify-content: space-between;
+    gap: 0;
+    padding: 48px 56px;
+  }
+}
+
+.year {
+  position: absolute;
+  right: -18px;
+  bottom: 0;
+  font-family: $display;
+  font-weight: 800;
+  font-size: 150px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  user-select: none;
+
+  @media (min-width: 900px) {
+    top: auto;
+    right: -40px;
+    bottom: 220px;
+    font-size: clamp(220px, 21vw, 320px);
+    -webkit-text-stroke-width: 3px;
+  }
+}
+
+.brandTop {
+  position: relative;
+  display: flex;
   align-items: center;
-  text-align: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.logo {
+  display: block;
+  height: 38px;
+  width: auto;
+
+  @media (min-width: 900px) {
+    height: 48px;
+  }
+}
+
+.wordmark {
+  font-family: $display;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
 }
 
 .back {
-  align-self: flex-start;
-  color: var(--color-orange, #fe5000);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
   text-decoration: none;
-  font-size: 14px;
-  margin-bottom: 8px;
+  padding: 10px 0;
 
   &:hover {
     text-decoration: underline;
   }
 }
 
-.logo {
-  height: 56px;
-  width: auto;
-  max-width: 100%;
-  margin-bottom: 8px;
-}
-
-.wordmark {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--color-orange, #fe5000);
-  margin-bottom: 8px;
-}
-
 .title {
+  position: relative;
   margin: 0;
-  font-size: 26px;
-  line-height: 1.2;
-  color: var(--color-brown, #4f2c1d);
-  text-wrap: balance;
+  max-width: 9em;
+  font-family: $display;
+  font-size: 32px;
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+
+  @media (min-width: 900px) {
+    font-size: clamp(44px, 3.9vw, 60px);
+    line-height: 1.08;
+  }
+}
+
+// ——— Лист со входом ———
+
+.sheet {
+  background: #fff;
+  border-radius: 28px 28px 0 0;
+  padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
+
+  @media (min-width: 900px) {
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+}
+
+.sheetInner {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (min-width: 900px) {
+    max-width: 400px;
+    gap: 24px;
+  }
 }
 
 .lead {
   margin: 0;
-  color: #5f554f;
+  font-size: 16px;
   line-height: 1.5;
+  // На телефоне текст по ширине с переносами — без рваного правого края.
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+
+  b {
+    font-weight: 600;
+  }
+
+  @media (min-width: 900px) {
+    font-size: 18px;
+    line-height: 1.55;
+    text-align: left;
+    hyphens: manual;
+    -webkit-hyphens: manual;
+  }
+}
+
+.deadline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid $line;
+  border-bottom: 1px solid $line;
+}
+
+.deadlineLabel {
+  font-size: 14px;
+  color: $muted;
+}
+
+.deadlineValue {
+  font-family: $display;
+  font-size: 15px;
+  font-weight: 700;
+  color: #c2410c;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .message {
-  margin: 12px 0 4px;
+  margin: 0;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-brown, #4f2c1d);
 }
 
 .privacy {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 13px;
   line-height: 1.5;
-  color: #8a807a;
+  color: $muted;
+  text-align: center;
+
+  @media (min-width: 900px) {
+    text-align: left;
+    padding-top: 16px;
+    border-top: 1px solid $line;
+  }
 }

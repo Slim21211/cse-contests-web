@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import VkLoginButton from './VkLoginButton';
+import { SUBMISSION_DEADLINE, isSubmissionClosed } from '../config';
 import styles from './authRequired.module.scss';
 
 interface Props {
-  /** Пояснение под заголовком: зачем входить на этой странице. */
+  /** Короткая подсказка над кнопкой входа: зачем входить на этой странице. */
   message?: string;
   showBackLink?: boolean;
   /** Устаревшие параметры раскладки — страница входа теперь со своей вёрсткой. */
@@ -12,49 +13,76 @@ interface Props {
   innerClassName?: string;
 }
 
-const DEFAULT_MESSAGE = 'Войдите, чтобы подать работу или проголосовать.';
+/** Год, который встречаем: с июля показываем уже следующий. */
+const festiveYear = () => {
+  const now = new Date();
+  return now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+};
 
-/** Логотип КСЭ из public/logo.png; пока файла нет — текстовый знак. */
+const formatDeadline = (date: Date) =>
+  date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' });
+
+/** Белый логотип КСЭ из public/logo-white.png; если файла нет — текстовый знак. */
 const Logo = () => {
   const [failed, setFailed] = useState(false);
   if (failed) return <span className={styles.wordmark}>КСЭ</span>;
   return (
     <img
-      src="/logo.png"
-      alt="КСЭ"
+      src="/logo-white.png"
+      alt="КСЭ — Курьер Сервис Экспресс"
       className={styles.logo}
       onError={() => setFailed(true)}
     />
   );
 };
 
-/** Страница входа: что это за сайт, кнопка VK ID и что мы сохраняем. */
-const AuthRequired = ({ message = DEFAULT_MESSAGE, showBackLink }: Props) => (
+/** Страница входа: оранжевая шапка с названием, ниже — описание, срок приёма работ и кнопка VK ID. */
+const AuthRequired = ({ message, showBackLink }: Props) => (
   <main className={styles.page}>
-    <div className={styles.card}>
-      {showBackLink && (
-        <Link to="/" className={styles.back}>
-          ← На главную
-        </Link>
-      )}
+    <section className={styles.brand}>
+      <span className={styles.year} aria-hidden="true">
+        {festiveYear()}
+      </span>
 
-      <Logo />
+      <div className={styles.brandTop}>
+        <Logo />
+        {showBackLink && (
+          <Link to="/" className={styles.back}>
+            ← На главную
+          </Link>
+        )}
+      </div>
 
       <h1 className={styles.title}>Новогодние конкурсы КСЭ</h1>
-      <p className={styles.lead}>
-        Здесь сотрудники КСЭ и их семьи подают работы на детский, командный и
-        индивидуальный конкурсы и голосуют за лучшие.
-      </p>
+    </section>
 
-      <p className={styles.message}>{message}</p>
+    <section className={styles.sheet}>
+      <div className={styles.sheetInner}>
+        <p className={styles.lead} lang="ru">
+          Сотрудники КСЭ и их семьи подают работы на <b>детский</b>, <b>командный</b> и{' '}
+          <b>индивидуальный</b> конкурсы и голосуют за лучшие.
+        </p>
 
-      <VkLoginButton />
+        {SUBMISSION_DEADLINE && (
+          <div className={styles.deadline}>
+            <span className={styles.deadlineLabel}>Приём работ</span>
+            <span className={styles.deadlineValue}>
+              {isSubmissionClosed() ? 'завершён' : `до ${formatDeadline(SUBMISSION_DEADLINE)}`}
+            </span>
+          </div>
+        )}
 
-      <p className={styles.privacy}>
-        Вход через VK нужен только чтобы подтвердить, что вы — это вы. Мы
-        сохраняем только ваш VK ID, без фото, контактов и списка друзей.
-      </p>
-    </div>
+        <div className={styles.login}>
+          {message && <p className={styles.message}>{message}</p>}
+          <VkLoginButton />
+        </div>
+
+        <p className={styles.privacy}>
+          Вход через VK — только чтобы подтвердить, что вы — это вы. Сохраняем лишь VK ID: без
+          фото, контактов и друзей.
+        </p>
+      </div>
+    </section>
   </main>
 );
 

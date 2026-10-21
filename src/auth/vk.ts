@@ -165,6 +165,7 @@ export const renderVkOneTap = (
       container,
       showAlternativeLogin: true,
       contentId: VKID.OneTapContentId.PARTICIPATE,
+      styles: { height: 52, borderRadius: 14 },
     })
     .on(VKID.WidgetEvents.ERROR, (err: unknown) => {
       console.error('VK ID error:', err);

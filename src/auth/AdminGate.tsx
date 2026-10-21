@@ -15,9 +15,7 @@ const AdminGate = ({ children }: { children: ReactNode }) => {
   if (!ADMIN_ONLY) return <>{children}</>;
 
   if (!user) {
-    return (
-      <AuthRequired message="Сайт пока в тестовом режиме. Войдите, чтобы продолжить." />
-    );
+    return <AuthRequired />;
   }
 
   if (isAdmin === null) {
