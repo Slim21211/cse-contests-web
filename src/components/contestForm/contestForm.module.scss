@@ -1,0 +1,706 @@
+@use '../../styles/brand' as *;
+
+// Страницы подачи работы. Телефон: шапка + белый лист с формой.
+// От $desktop: форма слева, закреплённая колонка с подсказками справа.
+
+$input-border: #e6d8ce;
+$error: #b42318;
+$error-soft: #fdecea;
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  font-family: $text;
+  color: $brown;
+}
+
+// ——— «На главную» в шапке: на телефоне — шеврон, на десктопе — текстовая кнопка ———
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin-right: -4px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+
+  @media (min-width: $desktop) {
+    height: 40px;
+    margin-right: 0;
+    padding: 0 18px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+}
+
+.backChevron {
+  width: 8px;
+  height: 8px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateX(1px) rotate(45deg);
+
+  @media (min-width: $desktop) {
+    display: none;
+  }
+}
+
+// ——— Лист и раскладка ———
+
+.sheet {
+  position: relative;
+  flex: 1;
+  margin-top: -28px;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: #fff;
+
+  @media (min-width: $desktop) {
+    width: 100%;
+    max-width: $container;
+    margin: 0 auto;
+    padding: 40px 48px 56px;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+}
+
+.layout {
+  @media (min-width: $desktop) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 40px;
+    align-items: start;
+  }
+}
+
+.single {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.content {
+  min-width: 0;
+}
+
+// ——— Подсказки справа (только десктоп) ———
+
+.aside {
+  display: none;
+
+  @media (min-width: $desktop) {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    border-radius: 24px;
+    background: $panel;
+  }
+}
+
+.asideDeadline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.asideLabel {
+  font-size: 14px;
+  color: $muted;
+}
+
+.asideValue {
+  font-family: $display;
+  font-size: 20px;
+  font-weight: 700;
+  color: $brand-text;
+}
+
+.asideMine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.mineBadge {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: $green-soft;
+  color: $green-text;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rules {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+
+  li::marker {
+    color: $brand-text;
+  }
+}
+
+// ——— Форма ———
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @media (min-width: $desktop) {
+    gap: 28px;
+  }
+}
+
+.group {
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 24px;
+  border: 0;
+  border-bottom: 1px solid $line;
+
+  @media (min-width: $desktop) {
+    padding-bottom: 28px;
+  }
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: 14px;
+  font-family: $display;
+  font-size: 15px;
+  font-weight: 700;
+
+  @media (min-width: $desktop) {
+    margin-bottom: 16px;
+    font-size: 18px;
+  }
+}
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @media (min-width: $desktop) {
+    gap: 16px;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+
+  @media (min-width: $desktop) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.rowNarrowLast {
+  grid-template-columns: minmax(0, 1fr) 156px;
+  gap: 12px;
+
+  @media (min-width: $desktop) {
+    grid-template-columns: minmax(0, 1fr) 200px;
+    gap: 16px;
+  }
+}
+
+.field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.required {
+  margin-left: 3px;
+  color: $brand-text;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid $input-border;
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 16px; // меньше 16px — iOS приближает страницу при фокусе
+  color: $brown;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: #a3958b;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $brand;
+    box-shadow: 0 0 0 3px rgba(232, 73, 14, 0.18);
+  }
+
+  &:disabled {
+    background: #fcf8f5;
+    border-color: #efe5de;
+    color: #8a7d74;
+  }
+}
+
+.select {
+  appearance: none;
+  padding-right: 36px;
+  background:
+    linear-gradient(45deg, transparent 50%, $muted 50%) calc(100% - 18px) 50% /
+      6px 6px no-repeat,
+    linear-gradient(135deg, $muted 50%, transparent 50%) calc(100% - 12px) 50% /
+      6px 6px no-repeat,
+    #fff;
+  cursor: pointer;
+}
+
+.textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 12px 14px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.fieldInvalid {
+  .label {
+    color: $error;
+  }
+
+  .input {
+    border-color: $error;
+  }
+}
+
+// ——— Файл ———
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.drop {
+  height: 168px;
+  padding: 16px;
+  border: 1.5px dashed #e0c6b5;
+  border-radius: 16px;
+  background: #fcf8f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: $brand;
+  }
+
+  .fileInput:focus-visible + & {
+    outline: 3px solid rgba(232, 73, 14, 0.35);
+    outline-offset: 2px;
+  }
+}
+
+.dropActive {
+  border-color: $brand;
+  background: #fff1ea;
+}
+
+.dropInvalid {
+  border-color: $error;
+}
+
+.dropIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fde6db;
+  color: $brand-text;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.dropTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dropOr {
+  font-weight: 400;
+  color: $muted;
+
+  // На телефоне перетаскивать некуда.
+  @media (hover: none) {
+    display: none;
+  }
+}
+
+.dropHint {
+  font-size: 13px;
+  color: $muted;
+}
+
+.fileCard {
+  border: 1px solid $card-border;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.preview {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  background: #f6efe9;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.fileMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileInfo {
+  font-size: 12.5px;
+  color: $muted;
+}
+
+.replace {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid $input-border;
+  border-radius: 10px;
+  background: #fff;
+  color: $brown;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// ——— Загрузка, ошибки, кнопка ———
+
+.submitArea {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: $panel;
+}
+
+.uploadHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.uploadTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.uploadPercent {
+  font-family: $display;
+  font-size: 15px;
+  font-weight: 700;
+  color: $brand-text;
+}
+
+.uploadBar {
+  height: 8px;
+  border-radius: 4px;
+  background: #f1e3d9;
+  overflow: hidden;
+}
+
+.uploadFill {
+  height: 100%;
+  border-radius: 4px;
+  background: $brand;
+  transition: width 0.3s ease;
+}
+
+.uploadFillIdle {
+  width: 30%;
+  height: 100%;
+  border-radius: 4px;
+  background: $brand;
+  animation: idle 1.2s ease-in-out infinite alternate;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes idle {
+  from {
+    transform: translateX(-10%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.uploadNote {
+  font-size: 13px;
+  color: $muted;
+}
+
+.slow {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff4dc;
+  color: #7a4b00;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.error {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: $error-soft;
+  color: $error;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.submitRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: $desktop) {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+}
+
+.submit {
+  height: 52px;
+  padding: 0 32px;
+  border: 0;
+  border-radius: 14px;
+  background: $brand;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  &:hover {
+    background: #d4410a;
+  }
+
+  &:disabled {
+    background: #f6d2c2;
+    color: #9a3d12;
+    cursor: default;
+  }
+}
+
+.secondary {
+  height: 52px;
+  padding: 0 24px;
+  border: 1px solid $input-border;
+  border-radius: 14px;
+  background: #fff;
+  color: $brown;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #d8c3b5;
+  }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(154, 61, 18, 0.3);
+  border-top-color: #9a3d12;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.missing {
+  margin: 0;
+  font-size: 14px;
+  color: $error;
+  text-align: center;
+
+  @media (min-width: $desktop) {
+    text-align: left;
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: $muted;
+  text-align: center;
+
+  // На десктопе это есть в колонке справа.
+  @media (min-width: $desktop) {
+    display: none;
+  }
+}
+
+// ——— Экраны «отправлено» и «приём завершён» ———
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 8px;
+  text-align: center;
+}
+
+.noticeMark {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: $soft;
+}
+
+.noticeMarkOk {
+  background: $green-soft;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 17px;
+    width: 14px;
+    height: 24px;
+    border-right: 4px solid $green;
+    border-bottom: 4px solid $green;
+    transform: rotate(45deg);
+  }
+}
+
+.noticeTitle {
+  margin: 0;
+  font-family: $display;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.noticeText {
+  margin: 0;
+  max-width: 28em;
+  font-size: 15px;
+  line-height: 1.5;
+  color: $muted;
+}
+
+.noticeActions {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: $desktop) {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

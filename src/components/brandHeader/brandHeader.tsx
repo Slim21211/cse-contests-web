@@ -6,6 +6,8 @@ interface Props {
   title: ReactNode;
   /** Строка над заголовком, например «Привет, Владимир!». */
   greeting?: ReactNode;
+  /** Строка под заголовком, например «Приём работ до 15 декабря». */
+  subtitle?: ReactNode;
   /** Ссылки и кнопки справа от логотипа. */
   actions?: ReactNode;
 }
@@ -24,7 +26,7 @@ const Logo = () => {
 };
 
 /** Оранжевая шапка страниц сайта: логотип, действия, приветствие, заголовок и контурный год. */
-const BrandHeader = ({ title, greeting, actions }: Props) => (
+const BrandHeader = ({ title, greeting, subtitle, actions }: Props) => (
   <header className={styles.header}>
     <span className={styles.year} aria-hidden="true">
       {festiveYear()}
@@ -37,6 +39,7 @@ const BrandHeader = ({ title, greeting, actions }: Props) => (
       <div className={styles.heading}>
         {greeting && <p className={styles.greeting}>{greeting}</p>}
         <h1 className={styles.title}>{title}</h1>
+        {subtitle && <p className={styles.greeting}>{subtitle}</p>}
       </div>
     </div>
   </header>

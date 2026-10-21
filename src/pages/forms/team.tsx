@@ -1,299 +1,175 @@
-import { useState, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import type { TeamContestSubmission } from '../../types/database';
-import FileUpload from '../../components/fileUpload/fileUpload';
-import {
-  uploadSubmissionFile,
-  logUploadError,
-  getConnectionInfo,
-} from '../../utils/uploadUtils';
-import { insertSubmission } from '../../utils/submissions';
-import SubmissionSuccess from '../../components/submissionSuccess/submissionSuccess';
-import '../../styles/form.scss';
-import {
-  useSiteSettings,
-  isSubmissionClosed as checkSubmissionClosed,
-} from '../../settings/siteSettings';
+import { useState, type FormEvent } from 'react';
 import { useCurrentUser, AuthRequired, useEnsureVkSession } from '../../auth';
-
+import { useSiteSettings, isSubmissionClosed } from '../../settings/siteSettings';
+import ContestFormPage from '../../components/contestForm/ContestFormPage';
+import FileDrop from '../../components/contestForm/FileDrop';
+import SubmitArea from '../../components/contestForm/SubmitArea';
+import { SubmissionClosed, SubmissionSuccess } from '../../components/contestForm/Notice';
+import {
+  Field,
+  Group,
+  Row,
+  formClass,
+  inputClass,
+  textareaClass,
+} from '../../components/contestForm/fields';
+import { useSubmitWork } from '../../components/contestForm/useSubmitWork';
+import { readFormMemory, saveFormMemory } from '../../components/contestForm/formMemory';
+import { focusFirst } from '../../components/contestForm/focusFirst';
 
 const Team = () => {
   const { user } = useCurrentUser();
-  const [teamName, setTeamName] = useState('');
-  const [department, setDepartment] = useState('');
-  const [city, setCity] = useState('');
-  const [participants, setParticipants] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<{ user: string; log: string } | null>(
-    null
-  );
-  const [success, setSuccess] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  // Продлеваем/проверяем вход через VK сразу, а не в момент отправки.
-  useEnsureVkSession(user);
-
+  useEnsureVkSession(user); // продлеваем вход через VK сразу, а не в момент отправки
   const { settings } = useSiteSettings();
-  const isSubmissionClosed = checkSubmissionClosed(settings);
+  const work = useSubmitWork('team', user?.id);
 
-  // Если прием работ закрыт - показываем заглушку
-  if (isSubmissionClosed) {
+  const [memory] = useState(readFormMemory);
+  const [teamName, setTeamName] = useState(memory.teamName ?? '');
+  const [department, setDepartment] = useState(memory.department ?? '');
+  const [city, setCity] = useState(memory.city ?? '');
+  const [participants, setParticipants] = useState(memory.participants ?? '');
+  const [file, setFile] = useState<File | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const [sent, setSent] = useState(0);
+
+  if (isSubmissionClosed(settings)) {
     return (
-      <div className="contest-form-container">
-        <div className="contest-form-wrapper">
-          <Link to="/" className="back-link">
-            ← Назад
-          </Link>
-          <div className="submission-closed">
-            <div className="icon">🔒</div>
-            <h2>Прием работ завершен</h2>
-            <p>
-              Прием работ на конкурс закончен, идет обработка работ перед
-              началом голосования.
-            </p>
-            <p>Голосование откроется на этом сайте.</p>
-          </div>
-        </div>
-      </div>
+      <ContestFormPage contest="team">
+        <SubmissionClosed />
+      </ContestFormPage>
     );
   }
 
   // Загрузка файла проверяет VK-токен на сервере — без входа форму не показываем.
   if (!user) {
-    return (
-      <AuthRequired
-        containerClassName="contest-form-container"
-        innerClassName="contest-form-wrapper submission-closed"
-        showBackLink
-        message="Войдите, чтобы отправить работу на конкурс."
-      />
-    );
+    return <AuthRequired showBackLink message="Войдите, чтобы отправить работу на конкурс." />;
   }
 
-  // После отправки форму скрываем: повторно ту же работу не отправить.
-  if (success) {
+  if (work.success) {
     const submitAnother = () => {
       setFile(null);
-      setUploadProgress(0);
-      setError(null);
-      setSuccess(false);
+      setAttempted(false);
+      work.reset();
     };
     return (
-      <div className="contest-form-container">
-        <div className="contest-form-wrapper">
-          <SubmissionSuccess onSubmitAnother={submitAnother} />
-        </div>
-      </div>
+      <ContestFormPage contest="team">
+        <SubmissionSuccess onSubmitAnother={submitAnother} />
+      </ContestFormPage>
     );
   }
 
-  const handleSubmit = async (e: FormEvent) => {
+  const fields = [
+    { id: 'teamName', label: 'название команды', ok: !!teamName.trim() },
+    { id: 'department', label: 'подразделение', ok: !!department.trim() },
+    { id: 'city', label: 'город', ok: !!city.trim() },
+    { id: 'participants', label: 'участники', ok: !!participants.trim() },
+    { id: 'file', label: 'файл', ok: !!file },
+  ];
+  const missing = fields.filter((f) => !f.ok);
+  const invalid = (id: string) => attempted && missing.some((f) => f.id === id);
+
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-    setUploadProgress(0);
-    setIsRetrying(false);
-
-    try {
-      if (!file)
-        throw { user: 'Пожалуйста, выберите файл', log: 'No file selected.' };
-
-
-      // Используем вынесенную функцию загрузки
-      const { fileUrl, posterUrl } = await uploadSubmissionFile(file, 'team', {
-        userId: user?.id,
-        onProgress: setUploadProgress,
-        onRetrying: setIsRetrying,
-      });
-
-      setUploadProgress(100);
-
-      // Сохраняем в Supabase
-      const submission: Omit<TeamContestSubmission, 'id' | 'created_at'> = {
-        team_name: teamName,
-        department,
-        city,
-        participants,
-        file_url: fileUrl,
-        ...(posterUrl ? { poster_url: posterUrl } : {}),
-        vk_user_id: user?.id,
-        is_active: true,
-      };
-
-      const insertError = await insertSubmission('team_contest', submission);
-
-      if (insertError) {
-        const connectionInfo = getConnectionInfo();
-
-        await logUploadError({
-          vk_user_id: user?.id,
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
-          error_stage: 'supabase',
-          error_message: insertError.message,
-          ...connectionInfo,
-        });
-
-        throw {
-          user: 'Ошибка сохранения данных в базу. Возможно, неверный формат одного из полей.',
-          log: `Supabase Insert Error: ${insertError.message}`,
-        };
-      }
-
-      setSuccess(true);
-
-    } catch (err) {
-      const customError = err as any;
-      if (customError.user && customError.log) {
-        setError({ user: customError.user, log: customError.log });
-        console.error('Техническая ошибка:', customError.log);
-      } else if (err instanceof Error) {
-        if (customError.name === 'TypeError') {
-          setError({
-            user: 'Не удалось установить соединение с сервером. Пожалуйста, проверьте интернет.',
-            log: `Initial network error: ${customError.name} - ${customError.message}`,
-          });
-        } else {
-          setError({
-            user: 'Произошла непредвиденная ошибка.',
-            log: err.message,
-          });
-        }
-        console.error('Непредвиденная ошибка:', err.message);
-      } else {
-        setError({
-          user: 'Произошла непредвиденная ошибка.',
-          log: 'Unknown error type.',
-        });
-      }
-    } finally {
-      setLoading(false);
-      setIsRetrying(false);
+    setAttempted(true);
+    if (missing.length || !file) {
+      focusFirst(missing.map((f) => f.id));
+      return;
     }
+    const row = {
+      team_name: teamName.trim(),
+      department: department.trim(),
+      city: city.trim(),
+      participants: participants.trim(),
+    };
+    saveFormMemory({
+      teamName: row.team_name,
+      department: row.department,
+      city: row.city,
+      participants: row.participants,
+    });
+    void work.submit(file, row).then(() => setSent((n) => n + 1));
   };
 
-  const isFormValid = teamName && department && city && participants && file;
+  const busy = work.loading;
 
   return (
-    <div className="contest-form-container">
-      <div className="contest-form-wrapper">
-        <Link to="/" className="back-link">
-          ← Назад
-        </Link>
-        <div className="contest-form-header">
-          <h1>✨ Командный новогодний конкурс</h1>
-          <p className="subtitle">Заполните форму для участия</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="contest-form">
-          <div className="form-group">
-            <label htmlFor="teamName">
-              Название команды <span className="required">*</span>
-            </label>
+    <ContestFormPage contest="team" userId={user.id} withAside refreshKey={sent}>
+      <form className={formClass} onSubmit={onSubmit} noValidate aria-busy={busy}>
+        <Group title="Команда">
+          <Field id="teamName" label="Название команды" invalid={invalid('teamName')}>
             <input
               id="teamName"
-              type="text"
+              className={inputClass}
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder="Новогодние Эльфы"
+              autoComplete="off"
               required
-              disabled={loading}
+              disabled={busy}
             />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="department">
-              Подразделение <span className="required">*</span>
-            </label>
-            <input
-              id="department"
-              type="text"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              placeholder="Отдел обучения и развития"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="city">
-              Город <span className="required">*</span>
-            </label>
-            <input
-              id="city"
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Москва"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="participants">
-              Участники команды (ФИО через запятую){' '}
-              <span className="required">*</span>
-            </label>
-            <input
+          </Field>
+          <Row>
+            <Field id="department" label="Подразделение" invalid={invalid('department')}>
+              <input
+                id="department"
+                className={inputClass}
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="Отдел обучения и развития"
+                autoComplete="organization-title"
+                required
+                disabled={busy}
+              />
+            </Field>
+            <Field id="city" label="Город" invalid={invalid('city')}>
+              <input
+                id="city"
+                className={inputClass}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Москва"
+                autoComplete="address-level2"
+                required
+                disabled={busy}
+              />
+            </Field>
+          </Row>
+          <Field id="participants" label="Участники" invalid={invalid('participants')}>
+            <textarea
               id="participants"
-              type="text"
+              className={textareaClass}
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
-              placeholder="Иванов И.И., Петров П.П., Сидоров С.С."
+              placeholder="Иванов И. И., Петров П. П., Сидоров С. С."
+              rows={3}
               required
-              disabled={loading}
+              disabled={busy}
             />
-          </div>
+          </Field>
+        </Group>
 
-          <div className="form-group">
-            <label>
-              Файл работы <span className="required">*</span>
-            </label>
-            <FileUpload file={file} onChange={setFile} disabled={loading} />
-          </div>
+        <Group title="Работа">
+          <Field id="file" label="Файл" invalid={invalid('file')}>
+            <FileDrop
+              id="file"
+              file={file}
+              onChange={setFile}
+              disabled={busy}
+              invalid={invalid('file')}
+            />
+          </Field>
+        </Group>
 
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${uploadProgress}%` }}
-              />
-              <span className="progress-text">{uploadProgress}%</span>
-            </div>
-          )}
-
-          {uploadProgress > 0 && uploadProgress < 100 && isRetrying && (
-            <div className="warning-message">
-              Слабое соединение с интернетом, время загрузки может увеличиться.
-            </div>
-          )}
-
-          {error && <div className="error-message">{error.user}</div>}
-
-
-          <button
-            type="submit"
-            disabled={loading || !isFormValid}
-            className="submit-button"
-          >
-            {loading ? (
-              <>
-                <span className="loading-spinner"></span>
-                Отправка...
-              </>
-            ) : (
-              'Отправить заявку'
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+        <SubmitArea
+          loading={busy}
+          progress={work.progress}
+          retrying={work.retrying}
+          fileSize={file?.size}
+          error={work.error?.user}
+          missing={attempted ? missing.map((f) => f.label) : []}
+        />
+      </form>
+    </ContestFormPage>
   );
 };
 

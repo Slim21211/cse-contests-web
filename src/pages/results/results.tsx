@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useCurrentUser, useIsAdmin } from '../../auth';
 import { useSiteSettings } from '../../settings/siteSettings';
+import { formatAge } from '../../utils/age';
 import type {
   ChildContestSubmission,
   TeamContestSubmission,
@@ -26,24 +27,6 @@ interface SubmissionWithStats {
   total_votes: number;
   place: number;
 }
-
-const plural = (
-  number: number,
-  one: string,
-  few: string,
-  many: string
-): string => {
-  const mod10 = number % 10;
-  const mod100 = number % 100;
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return one;
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-    return few;
-  }
-  return many;
-};
 
 const Results = () => {
   const [activeTab, setActiveTab] = useState<ContestType>('child');
@@ -222,14 +205,12 @@ const Results = () => {
 
     if (activeTab === 'child') {
       const child = submission as ChildContestSubmission;
-      const ageWord = plural(child.child_age, 'год', 'года', 'лет');
 
       return (
         <>
           <h3>{child.title}</h3>
           <p>
-            <strong>Автор:</strong> {child.child_name}, {child.child_age}{' '}
-            {ageWord}
+            <strong>Автор:</strong> {child.child_name}, {formatAge(child.child_age)}
           </p>
           <p>
             <strong>Родитель:</strong> {child.full_name}

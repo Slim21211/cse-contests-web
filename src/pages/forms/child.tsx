@@ -1,338 +1,217 @@
-import { useState, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import type { ChildContestSubmission } from '../../types/database';
-import FileUpload from '../../components/fileUpload/fileUpload';
-import {
-  uploadSubmissionFile,
-  logUploadError,
-  getConnectionInfo,
-} from '../../utils/uploadUtils';
-import { insertSubmission } from '../../utils/submissions';
-import SubmissionSuccess from '../../components/submissionSuccess/submissionSuccess';
-import '../../styles/form.scss';
-import {
-  useSiteSettings,
-  isSubmissionClosed as checkSubmissionClosed,
-} from '../../settings/siteSettings';
+import { useState, type FormEvent } from 'react';
 import { useCurrentUser, AuthRequired, useEnsureVkSession } from '../../auth';
-
+import { useSiteSettings, isSubmissionClosed } from '../../settings/siteSettings';
+import ContestFormPage from '../../components/contestForm/ContestFormPage';
+import FileDrop from '../../components/contestForm/FileDrop';
+import SubmitArea from '../../components/contestForm/SubmitArea';
+import { SubmissionClosed, SubmissionSuccess } from '../../components/contestForm/Notice';
+import {
+  Field,
+  Group,
+  Row,
+  formClass,
+  inputClass,
+  selectClass,
+} from '../../components/contestForm/fields';
+import { useSubmitWork } from '../../components/contestForm/useSubmitWork';
+import { readFormMemory, saveFormMemory } from '../../components/contestForm/formMemory';
+import { focusFirst } from '../../components/contestForm/focusFirst';
+import { AGE_OPTIONS } from '../../utils/age';
 
 const Child = () => {
   const { user } = useCurrentUser();
-  const [fullName, setFullName] = useState('');
-  const [department, setDepartment] = useState('');
-  const [city, setCity] = useState('');
+  useEnsureVkSession(user); // продлеваем вход через VK сразу, а не в момент отправки
+  const { settings } = useSiteSettings();
+  const work = useSubmitWork('child', user?.id);
+
+  const [memory] = useState(readFormMemory);
+  const [fullName, setFullName] = useState(memory.fullName ?? '');
+  const [department, setDepartment] = useState(memory.department ?? '');
+  const [city, setCity] = useState(memory.city ?? '');
   const [childName, setChildName] = useState('');
-  const [childAge, setChildAge] = useState<number | ''>('');
+  const [childAge, setChildAge] = useState(''); // '' — не выбран, '0' — менее 1 года
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<{ user: string; log: string } | null>(
-    null
-  );
-  const [success, setSuccess] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const [sent, setSent] = useState(0);
 
-  // Продлеваем/проверяем вход через VK сразу, а не в момент отправки.
-  useEnsureVkSession(user);
-
-  const { settings } = useSiteSettings();
-  const isSubmissionClosed = checkSubmissionClosed(settings);
-
-  // Если прием работ закрыт - показываем заглушку
-  if (isSubmissionClosed) {
+  if (isSubmissionClosed(settings)) {
     return (
-      <div className="contest-form-container">
-        <div className="contest-form-wrapper">
-          <Link to="/" className="back-link">
-            ← Назад
-          </Link>
-          <div className="submission-closed">
-            <div className="icon">🔒</div>
-            <h2>Прием работ завершен</h2>
-            <p>
-              Прием работ на конкурс закончен, идет обработка работ перед
-              началом голосования.
-            </p>
-            <p>Голосование откроется на этом сайте.</p>
-          </div>
-        </div>
-      </div>
+      <ContestFormPage contest="child">
+        <SubmissionClosed />
+      </ContestFormPage>
     );
   }
 
   // Загрузка файла проверяет VK-токен на сервере — без входа форму не показываем.
   if (!user) {
-    return (
-      <AuthRequired
-        containerClassName="contest-form-container"
-        innerClassName="contest-form-wrapper submission-closed"
-        showBackLink
-        message="Войдите, чтобы отправить работу на конкурс."
-      />
-    );
+    return <AuthRequired showBackLink message="Войдите, чтобы отправить работу на конкурс." />;
   }
 
-  // После отправки форму скрываем: повторно ту же работу не отправить.
-  if (success) {
+  if (work.success) {
     const submitAnother = () => {
-      setFile(null);
       setChildName('');
       setChildAge('');
       setTitle('');
-      setUploadProgress(0);
-      setError(null);
-      setSuccess(false);
+      setFile(null);
+      setAttempted(false);
+      work.reset();
     };
     return (
-      <div className="contest-form-container">
-        <div className="contest-form-wrapper">
-          <SubmissionSuccess onSubmitAnother={submitAnother} />
-        </div>
-      </div>
+      <ContestFormPage contest="child">
+        <SubmissionSuccess onSubmitAnother={submitAnother} />
+      </ContestFormPage>
     );
   }
 
-  const handleSubmit = async (e: FormEvent) => {
+  const fields = [
+    { id: 'fullName', label: 'ФИО', ok: !!fullName.trim() },
+    { id: 'department', label: 'подразделение', ok: !!department.trim() },
+    { id: 'city', label: 'город', ok: !!city.trim() },
+    { id: 'childName', label: 'имя ребёнка', ok: !!childName.trim() },
+    { id: 'childAge', label: 'возраст', ok: childAge !== '' },
+    { id: 'title', label: 'название', ok: !!title.trim() },
+    { id: 'file', label: 'файл', ok: !!file },
+  ];
+  const missing = fields.filter((f) => !f.ok);
+  const invalid = (id: string) => attempted && missing.some((f) => f.id === id);
+
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-    setUploadProgress(0);
-    setIsRetrying(false);
-
-    try {
-      if (!file)
-        throw { user: 'Пожалуйста, выберите файл', log: 'No file selected.' };
-
-
-      // Используем вынесенную функцию загрузки
-      const { fileUrl, posterUrl } = await uploadSubmissionFile(file, 'child', {
-        userId: user?.id,
-        onProgress: setUploadProgress,
-        onRetrying: setIsRetrying,
-      });
-
-      setUploadProgress(100);
-
-      // Сохраняем в Supabase
-      const submission: Omit<ChildContestSubmission, 'id' | 'created_at'> = {
-        full_name: fullName,
-        department,
-        city,
-        child_name: childName,
-        child_age: childAge as number,
-        title,
-        file_url: fileUrl,
-        ...(posterUrl ? { poster_url: posterUrl } : {}),
-        vk_user_id: user?.id,
-        is_active: true,
-      };
-
-      const insertError = await insertSubmission('child_contest', submission);
-
-      if (insertError) {
-        const connectionInfo = getConnectionInfo();
-
-        await logUploadError({
-          vk_user_id: user?.id,
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
-          error_stage: 'supabase',
-          error_message: insertError.message,
-          ...connectionInfo,
-        });
-
-        throw {
-          user: 'Ошибка сохранения данных в базу. Возможно, неверный формат одного из полей.',
-          log: `Supabase Insert Error: ${insertError.message}`,
-        };
-      }
-
-      setSuccess(true);
-
-    } catch (err) {
-      const customError = err as any;
-      if (customError.user && customError.log) {
-        setError({ user: customError.user, log: customError.log });
-        console.error('Техническая ошибка:', customError.log);
-      } else if (err instanceof Error) {
-        if (customError.name === 'TypeError') {
-          setError({
-            user: 'Не удалось установить соединение с сервером. Пожалуйста, проверьте интернет.',
-            log: `Initial network error: ${customError.name} - ${customError.message}`,
-          });
-        } else {
-          setError({
-            user: 'Произошла непредвиденная ошибка.',
-            log: err.message,
-          });
-        }
-        console.error('Непредвиденная ошибка:', err.message);
-      } else {
-        setError({
-          user: 'Произошла непредвиденная ошибка.',
-          log: 'Unknown error type.',
-        });
-      }
-    } finally {
-      setLoading(false);
-      setIsRetrying(false);
+    setAttempted(true);
+    if (missing.length || !file) {
+      focusFirst(missing.map((f) => f.id));
+      return;
     }
+    saveFormMemory({ fullName: fullName.trim(), department: department.trim(), city: city.trim() });
+    void work
+      .submit(file, {
+        full_name: fullName.trim(),
+        department: department.trim(),
+        city: city.trim(),
+        child_name: childName.trim(),
+        child_age: Number(childAge),
+        title: title.trim(),
+      })
+      .then(() => setSent((n) => n + 1));
   };
 
-  const isFormValid =
-    fullName && department && city && childName && childAge && title && file;
+  const busy = work.loading;
 
   return (
-    <div className="contest-form-container">
-      <div className="contest-form-wrapper">
-        <Link to="/" className="back-link">
-          ← Назад
-        </Link>
-        <div className="contest-form-header">
-          <h1>🎄 Детский новогодний конкурс</h1>
-          <p className="subtitle">Заполните форму для участия</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="contest-form">
-          <div className="form-group">
-            <label htmlFor="fullName">
-              ФИО <span className="required">*</span>
-            </label>
+    <ContestFormPage contest="child" userId={user.id} withAside refreshKey={sent}>
+      <form className={formClass} onSubmit={onSubmit} noValidate aria-busy={busy}>
+        <Group title="Сотрудник">
+          <Field id="fullName" label="ФИО" invalid={invalid('fullName')}>
             <input
               id="fullName"
-              type="text"
+              className={inputClass}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Иванов Иван Иванович"
+              autoComplete="name"
               required
-              disabled={loading}
+              disabled={busy}
             />
-          </div>
+          </Field>
+          <Row>
+            <Field id="department" label="Подразделение" invalid={invalid('department')}>
+              <input
+                id="department"
+                className={inputClass}
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="Отдел обучения и развития"
+                autoComplete="organization-title"
+                required
+                disabled={busy}
+              />
+            </Field>
+            <Field id="city" label="Город" invalid={invalid('city')}>
+              <input
+                id="city"
+                className={inputClass}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Москва"
+                autoComplete="address-level2"
+                required
+                disabled={busy}
+              />
+            </Field>
+          </Row>
+        </Group>
 
-          <div className="form-group">
-            <label htmlFor="department">
-              Подразделение <span className="required">*</span>
-            </label>
-            <input
-              id="department"
-              type="text"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              placeholder="Отдел обучения и развития"
-              required
-              disabled={loading}
-            />
-          </div>
+        <Group title="Ребёнок">
+          <Row narrowLast>
+            <Field id="childName" label="Имя" invalid={invalid('childName')}>
+              <input
+                id="childName"
+                className={inputClass}
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                placeholder="Маша"
+                autoComplete="off"
+                required
+                disabled={busy}
+              />
+            </Field>
+            <Field id="childAge" label="Возраст" invalid={invalid('childAge')}>
+              <select
+                id="childAge"
+                className={selectClass}
+                value={childAge}
+                onChange={(e) => setChildAge(e.target.value)}
+                required
+                disabled={busy}
+              >
+                <option value="" disabled>
+                  Выберите
+                </option>
+                {AGE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </Row>
+        </Group>
 
-          <div className="form-group">
-            <label htmlFor="city">
-              Город <span className="required">*</span>
-            </label>
-            <input
-              id="city"
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Москва"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="childName">
-              Имя ребенка <span className="required">*</span>
-            </label>
-            <input
-              id="childName"
-              type="text"
-              value={childName}
-              onChange={(e) => setChildName(e.target.value)}
-              placeholder="Маша"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="childAge">
-              Возраст ребенка <span className="required">*</span>
-            </label>
-            <input
-              id="childAge"
-              type="number"
-              inputMode="numeric"
-              min="1"
-              value={childAge}
-              onChange={(e) => setChildAge(Number(e.target.value) || '')}
-              placeholder="5"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="title">
-              Название работы <span className="required">*</span>
-            </label>
+        <Group title="Работа">
+          <Field id="title" label="Название" invalid={invalid('title')}>
             <input
               id="title"
-              type="text"
+              className={inputClass}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Зимняя сказка"
+              autoComplete="off"
               required
-              disabled={loading}
+              disabled={busy}
             />
-          </div>
+          </Field>
+          <Field id="file" label="Файл" invalid={invalid('file')}>
+            <FileDrop
+              id="file"
+              file={file}
+              onChange={setFile}
+              disabled={busy}
+              invalid={invalid('file')}
+            />
+          </Field>
+        </Group>
 
-          <div className="form-group">
-            <label>
-              Файл работы <span className="required">*</span>
-            </label>
-            <FileUpload file={file} onChange={setFile} disabled={loading} />
-          </div>
-
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${uploadProgress}%` }}
-              />
-              <span className="progress-text">{uploadProgress}%</span>
-            </div>
-          )}
-
-          {uploadProgress > 0 && uploadProgress < 100 && isRetrying && (
-            <div className="warning-message">
-              Слабое соединение с интернетом, время загрузки может увеличиться.
-            </div>
-          )}
-
-          {error && <div className="error-message">{error.user}</div>}
-
-
-          <button
-            type="submit"
-            disabled={loading || !isFormValid}
-            className="submit-button"
-          >
-            {loading ? (
-              <>
-                <span className="loading-spinner"></span>
-                Отправка...
-              </>
-            ) : (
-              'Отправить заявку'
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+        <SubmitArea
+          loading={busy}
+          progress={work.progress}
+          retrying={work.retrying}
+          fileSize={file?.size}
+          error={work.error?.user}
+          missing={attempted ? missing.map((f) => f.label) : []}
+        />
+      </form>
+    </ContestFormPage>
   );
 };
 

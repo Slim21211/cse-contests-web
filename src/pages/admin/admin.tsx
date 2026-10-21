@@ -10,6 +10,7 @@ import type {
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
 import Loader from '../../components/loader/loader';
 import SiteSettingsPanel from './SiteSettingsPanel';
+import { formatAge } from '../../utils/age';
 import '../../styles/admin.scss';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 
@@ -166,8 +167,7 @@ const Admin = () => {
         <>
           <h3>{child.title}</h3>
           <p>
-            <strong>Ребёнок:</strong> {child.child_name}, {child.child_age}{' '}
-            {getAgeWord(child.child_age)}
+            <strong>Ребёнок:</strong> {child.child_name}, {formatAge(child.child_age)}
           </p>
           <p>
             <strong>Родитель:</strong> {child.full_name}
@@ -219,26 +219,6 @@ const Admin = () => {
     }
 
     return null;
-  };
-
-  // Функция для склонения слова "год/года/лет"
-  const getAgeWord = (age: number): string => {
-    const lastDigit = age % 10;
-    const lastTwoDigits = age % 100;
-
-    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-      return 'лет';
-    }
-
-    if (lastDigit === 1) {
-      return 'год';
-    }
-
-    if (lastDigit >= 2 && lastDigit <= 4) {
-      return 'года';
-    }
-
-    return 'лет';
   };
 
   // Функция для проверки является ли файл изображением

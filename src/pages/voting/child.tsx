@@ -9,6 +9,7 @@ import {
   formatDay,
 } from '../../settings/siteSettings';
 import type { ChildContestSubmission } from '../../types/database';
+import { formatAge } from '../../utils/age';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
 import Loader from '../../components/loader/loader';
 import '../../styles/voting.scss';
@@ -255,7 +256,7 @@ const ChildVoting = () => {
                   <strong>Автор:</strong> {submission.child_name}
                 </p>
                 <p>
-                  <strong>Возраст:</strong> {submission.child_age}
+                  <strong>Возраст:</strong> {formatAge(submission.child_age)}
                 </p>
               </div>
 
