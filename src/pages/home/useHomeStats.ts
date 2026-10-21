@@ -17,21 +17,46 @@ export interface ContestStats {
 
 const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
 
+type Stats = Record<ContestType, ContestStats>;
+
+// Последние счётчики храним в браузере — при возврате на главную карточки сразу с цифрами,
+// а свежие подтягиваются в фоне.
+const STORAGE_KEY = 'cse-home-stats';
+
+const readCache = (): { userId: number; stats: Stats } | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (value: { userId: number; stats: Stats }) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+  } catch {
+    /* приватный режим и т. п. — просто не кэшируем */
+  }
+};
+
 /** Счётчики для карточек главной: только количества, без загрузки самих работ. */
 export const useHomeStats = (userId: number | undefined) => {
-  const [stats, setStats] = useState<Record<ContestType, ContestStats> | null>(null);
+  const [stats, setStats] = useState<Stats | null>(() => {
+    const cached = readCache();
+    return cached && cached.userId === userId ? cached.stats : null;
+  });
 
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
 
     (async () => {
-      const { data: settings } = await supabase
+      // Все запросы параллельно: флаги голосования и счётчики по трём конкурсам.
+      const settingsRequest = supabase
         .from('contest_settings')
         .select('contest_type, voting_enabled');
-      const enabled = new Map((settings ?? []).map((s) => [s.contest_type, s.voting_enabled]));
-
-      const entries = await Promise.all(
+      const entriesRequest = Promise.all(
         CONTESTS.map(async (c) => {
           const head = { count: 'exact' as const, head: true };
           const [total, mine, rated] = await Promise.all([
@@ -57,13 +82,18 @@ export const useHomeStats = (userId: number | undefined) => {
               total,
               mine,
               rated: Math.min(rated, total),
-              votingEnabled: enabled.get(c) ?? true,
             },
           ] as const;
         }),
       );
 
-      if (!cancelled) setStats(Object.fromEntries(entries) as Record<ContestType, ContestStats>);
+      const [{ data: settings }, entries] = await Promise.all([settingsRequest, entriesRequest]);
+      const enabled = new Map((settings ?? []).map((s) => [s.contest_type, s.voting_enabled]));
+      const next = Object.fromEntries(
+        entries.map(([c, st]) => [c, { ...st, votingEnabled: enabled.get(c) ?? true }]),
+      ) as Stats;
+      writeCache({ userId, stats: next });
+      if (!cancelled) setStats(next);
     })().catch((err) => console.error('Счётчики главной:', err));
 
     return () => {

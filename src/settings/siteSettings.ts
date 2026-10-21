@@ -25,19 +25,51 @@ const envDeadline = import.meta.env.VITE_SUBMISSION_DEADLINE
 
 const toDate = (v: string | null | undefined) => (v ? new Date(v) : null);
 
+// Последние полученные настройки храним в браузере: при повторном заходе страница
+// сразу рисуется с ними (без скачков), а свежие подтягиваются в фоне.
+const STORAGE_KEY = 'cse-site-settings';
+
+const readStored = (): SiteSettings | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    return {
+      submissionDeadline: toDate(v.submissionDeadline) ?? envDeadline,
+      votingStart: toDate(v.votingStart),
+      votingEnd: toDate(v.votingEnd),
+      resultsPublished: v.resultsPublished === true,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const store = (settings: SiteSettings) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    /* приватный режим и т. п. — просто не кэшируем */
+  }
+};
+
+const stored = readStored();
+
 let state: { settings: SiteSettings; loaded: boolean } = {
-  settings: {
+  settings: stored ?? {
     submissionDeadline: envDeadline,
     votingStart: null,
     votingEnd: null,
     resultsPublished: false,
   },
-  loaded: false,
+  // loaded = есть настройки, которым можно верить (из кэша или с сервера).
+  loaded: stored !== null,
 };
 const listeners = new Set<() => void>();
 let request: Promise<SiteSettings> | null = null;
 
 const emit = (settings: SiteSettings) => {
+  store(settings);
   state = { settings, loaded: true };
   listeners.forEach((l) => l());
 };

@@ -41,6 +41,11 @@ const Arrow = ({ muted }: { muted?: boolean }) => (
   </span>
 );
 
+/** Серая полоска на месте текста, пока грузятся данные. Высота строки та же, что у текста. */
+const Skeleton = ({ width }: { width: number }) => (
+  <span className={styles.skeleton} style={{ width }} aria-hidden="true" />
+);
+
 const WorksMeta = ({ stats }: { stats?: ContestStats }) =>
   stats ? (
     <span className={styles.meta}>
@@ -51,11 +56,31 @@ const WorksMeta = ({ stats }: { stats?: ContestStats }) =>
         </span>
       )}
     </span>
-  ) : null;
+  ) : (
+    <span className={styles.meta}>
+      <Skeleton width={110} />
+    </span>
+  );
 
 const Progress = ({ stats }: { stats?: ContestStats }) => {
-  if (!stats) return null;
-  if (stats.total === 0) return <span className={styles.meta}>Пока нет работ</span>;
+  if (!stats) {
+    return (
+      <span className={styles.progress}>
+        <span className={styles.bar} />
+        <span className={styles.progressText}>
+          <Skeleton width={110} />
+        </span>
+      </span>
+    );
+  }
+  if (stats.total === 0) {
+    return (
+      <span className={styles.progress}>
+        <span className={styles.bar} />
+        <span className={styles.progressText}>Пока нет работ</span>
+      </span>
+    );
+  }
   const done = stats.rated >= stats.total;
   return (
     <span className={styles.progress}>
@@ -75,7 +100,7 @@ const Progress = ({ stats }: { stats?: ContestStats }) => {
 const Home = () => {
   const { user } = useCurrentUser();
   const isAdmin = useIsAdmin(user) === true;
-  const { settings } = useSiteSettings();
+  const { settings, loaded } = useSiteSettings();
   const stats = useHomeStats(user?.id);
   const [params, setParams] = useSearchParams();
 
@@ -165,17 +190,26 @@ const Home = () => {
           >
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{submitLabel}</h2>
-              {settings.submissionDeadline && (
+              {!loaded ? (
                 <span className={styles.deadline}>
                   <span className={styles.deadlineLabel}>Приём работ</span>
-                  <span
-                    className={cx(styles.deadlineValue, submissionClosed && styles.deadlineDone)}
-                  >
-                    {submissionClosed
-                      ? `завершён ${formatDay(settings.submissionDeadline)}`
-                      : `до ${formatDay(settings.submissionDeadline)}`}
+                  <span className={styles.deadlineValue}>
+                    <Skeleton width={110} />
                   </span>
                 </span>
+              ) : (
+                settings.submissionDeadline && (
+                  <span className={styles.deadline}>
+                    <span className={styles.deadlineLabel}>Приём работ</span>
+                    <span
+                      className={cx(styles.deadlineValue, submissionClosed && styles.deadlineDone)}
+                    >
+                      {submissionClosed
+                        ? `завершён ${formatDay(settings.submissionDeadline)}`
+                        : `до ${formatDay(settings.submissionDeadline)}`}
+                    </span>
+                  </span>
+                )
               )}
             </div>
 
@@ -220,7 +254,14 @@ const Home = () => {
           >
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{voteLabel}</h2>
-              {votingPhase === 'upcoming' && settings.votingStart ? (
+              {!loaded ? (
+                <span className={styles.deadline}>
+                  <span className={styles.deadlineLabel}>Голосование</span>
+                  <span className={styles.deadlineValue}>
+                    <Skeleton width={110} />
+                  </span>
+                </span>
+              ) : votingPhase === 'upcoming' && settings.votingStart ? (
                 <span className={styles.deadline}>
                   <span className={styles.deadlineLabel}>Голосование</span>
                   <span className={styles.deadlineValue}>с {formatDay(settings.votingStart)}</span>
@@ -242,6 +283,20 @@ const Home = () => {
                 const info = CONTEST_INFO[c];
                 const s = stats?.[c];
                 const status = votingStatus(settings, s?.votingEnabled ?? true);
+
+                // Пока не знаем сроки или флаг конкурса — заглушка того же размера, что и карточка.
+                if (!loaded || (!s && status === 'open')) {
+                  return (
+                    <div key={c} className={styles.card} aria-busy="true">
+                      <span className={styles.num}>{info.num}</span>
+                      <span className={styles.body}>
+                        <span className={styles.cardTitle}>{info.title}</span>
+                        <Progress />
+                      </span>
+                      <span className={cx(styles.arrow, styles.arrowSkeleton)} aria-hidden="true" />
+                    </div>
+                  );
+                }
 
                 if (status === 'upcoming') {
                   return (

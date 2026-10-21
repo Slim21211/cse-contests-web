@@ -419,9 +419,40 @@ a.card:focus-visible {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  min-height: 21px; // высота строки с бейджем «1 ваша» — чтобы она не прыгала
   margin-top: 2px;
   font-size: 13px;
   color: $muted;
+}
+
+// ——— Заглушки на время загрузки ———
+
+.skeleton {
+  display: inline-block;
+  height: 0.9em;
+  border-radius: 6px;
+  vertical-align: middle;
+  background: linear-gradient(90deg, #f1e7e0 0%, #f8f1ec 50%, #f1e7e0 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// .arrow объявлен ниже — повышаем специфичность, чтобы заглушка была серой.
+.arrow.arrowSkeleton {
+  background: $soft;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
 }
 
 .mine {
@@ -458,6 +489,7 @@ a.card:focus-visible {
 }
 
 .progressText {
+  min-height: 1.4em;
   font-size: 13px;
   color: $muted;
 }
