@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import VkLoginButton from './VkLoginButton';
-import { SUBMISSION_DEADLINE, isSubmissionClosed } from '../config';
+import { useSiteSettings, isSubmissionClosed, formatDay } from '../settings/siteSettings';
+import { festiveYear } from '../utils/festiveYear';
 import styles from './authRequired.module.scss';
 
 interface Props {
@@ -12,15 +13,6 @@ interface Props {
   containerClassName?: string;
   innerClassName?: string;
 }
-
-/** Год, который встречаем: с июля показываем уже следующий. */
-const festiveYear = () => {
-  const now = new Date();
-  return now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
-};
-
-const formatDeadline = (date: Date) =>
-  date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' });
 
 /** Белый логотип КСЭ из public/logo-white.png; если файла нет — текстовый знак. */
 const Logo = () => {
@@ -37,7 +29,11 @@ const Logo = () => {
 };
 
 /** Страница входа: оранжевая шапка с названием, ниже — описание, срок приёма работ и кнопка VK ID. */
-const AuthRequired = ({ message, showBackLink }: Props) => (
+const AuthRequired = ({ message, showBackLink }: Props) => {
+  const { settings } = useSiteSettings();
+  const deadline = settings.submissionDeadline;
+
+  return (
   <main className={styles.page}>
     <section className={styles.brand}>
       <span className={styles.year} aria-hidden="true">
@@ -63,11 +59,11 @@ const AuthRequired = ({ message, showBackLink }: Props) => (
           <b>индивидуальный</b> конкурсы и голосуют за лучшие.
         </p>
 
-        {SUBMISSION_DEADLINE && (
+        {deadline && (
           <div className={styles.deadline}>
             <span className={styles.deadlineLabel}>Приём работ</span>
             <span className={styles.deadlineValue}>
-              {isSubmissionClosed() ? 'завершён' : `до ${formatDeadline(SUBMISSION_DEADLINE)}`}
+              {isSubmissionClosed(settings) ? 'завершён' : `до ${formatDay(deadline)}`}
             </span>
           </div>
         )}
@@ -84,6 +80,7 @@ const AuthRequired = ({ message, showBackLink }: Props) => (
       </div>
     </section>
   </main>
-);
+  );
+};
 
 export default AuthRequired;

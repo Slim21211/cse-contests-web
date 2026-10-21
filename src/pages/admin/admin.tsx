@@ -9,6 +9,7 @@ import type {
 } from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
 import Loader from '../../components/loader/loader';
+import SiteSettingsPanel from './SiteSettingsPanel';
 import '../../styles/admin.scss';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 
@@ -298,6 +299,8 @@ const Admin = () => {
           ))}
         </div>
       </div>
+
+      <SiteSettingsPanel />
 
       <div className="admin-controls">
         <div className="voting-toggle">

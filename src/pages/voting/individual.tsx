@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useCurrentUser, AuthRequired } from '../../auth';
+import {
+  useSiteSettings,
+  loadSiteSettings,
+  votingStatus,
+  formatDay,
+} from '../../settings/siteSettings';
 import type { IndividualContestSubmission } from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
 import Loader from '../../components/loader/loader';
@@ -28,12 +34,16 @@ const IndividualVoting = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [votingEnabled, setVotingEnabled] = useState(true);
+  const { settings: siteSettings } = useSiteSettings();
+  const status = votingStatus(siteSettings, votingEnabled);
+  const canVote = status === 'open';
 
   useEffect(() => {
     if (userLoading) return;
 
     const fetchData = async () => {
       try {
+        const site = await loadSiteSettings();
         const { data: settings } = await supabase
           .from('contest_settings')
           .select('voting_enabled')
@@ -75,7 +85,12 @@ const IndividualVoting = () => {
         setSubmissions(shuffledSubmissions);
 
         // 🆕 ИСПРАВЛЕННЫЙ БАТЧИНГ с разбивкой на чанки
-        if (user && votingEnabled && works && works.length > 0) {
+        if (
+          user &&
+          votingStatus(site, votingEnabled) === 'open' &&
+          works &&
+          works.length > 0
+        ) {
           const newVotes = works
             .filter((work) => !userVotes[work.id])
             .map((work) => ({
@@ -122,7 +137,7 @@ const IndividualVoting = () => {
   }, [user?.id, userLoading]);
 
   const handleRating = async (submissionId: string, rating: number) => {
-    if (!user || !votingEnabled) return;
+    if (!user || !canVote) return;
 
     setSubmissions((prev) =>
       prev.map((s) =>
@@ -155,16 +170,35 @@ const IndividualVoting = () => {
     );
   }
 
-  if (!votingEnabled) {
+  if (!canVote) {
     return (
       <div className="voting-container">
         <Link to="/" className="back-link">
           ← Назад
         </Link>
         <div className="voting-disabled">
-          <div className="icon">🔒</div>
-          <h2>Голосование завершено</h2>
-          <p>Спасибо за участие! Результаты будут объявлены позже.</p>
+          {status === 'closed' && (
+            <>
+              <h2>Голосование завершено</h2>
+              <p>Спасибо за участие! Результаты будут объявлены позже.</p>
+            </>
+          )}
+          {status === 'upcoming' && (
+            <>
+              <h2>Голосование ещё не началось</h2>
+              <p>
+                {siteSettings.votingStart
+                  ? `Оно откроется ${formatDay(siteSettings.votingStart)}.`
+                  : 'Оно откроется после окончания приёма работ.'}
+              </p>
+            </>
+          )}
+          {status === 'paused' && (
+            <>
+              <h2>Голосование приостановлено</h2>
+              <p>Скоро продолжим — загляните позже.</p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -1,0 +1,25 @@
+// Общие токены нового дизайна (страница входа, главная, дальше — остальные страницы).
+
+$brand: #e8490e;
+$brand-text: #c2410c; // оранжевый для текста на белом (контраст 4.5:1)
+$brown: #4f2c1d;
+$muted: #6b5d55;
+$line: #f1e7e0;
+$card-border: #efe3da;
+$panel: #fbf5f1;
+$soft: #f7efe9;
+$green: #2f8a3a;
+$green-text: #2f6b34;
+$green-soft: #eef7ee;
+
+$display: 'Unbounded', 'Golos Text', system-ui, sans-serif;
+$text:
+  'Golos Text',
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  Roboto,
+  sans-serif;
+
+$desktop: 960px;
+$container: 1200px;

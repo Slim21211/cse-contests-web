@@ -10,7 +10,10 @@ import {
 import { insertSubmission } from '../../utils/submissions';
 import SubmissionSuccess from '../../components/submissionSuccess/submissionSuccess';
 import '../../styles/form.scss';
-import { isSubmissionClosed as checkSubmissionClosed } from '../../config';
+import {
+  useSiteSettings,
+  isSubmissionClosed as checkSubmissionClosed,
+} from '../../settings/siteSettings';
 import { useCurrentUser, AuthRequired, useEnsureVkSession } from '../../auth';
 
 
@@ -34,7 +37,8 @@ const Child = () => {
   // Продлеваем/проверяем вход через VK сразу, а не в момент отправки.
   useEnsureVkSession(user);
 
-  const isSubmissionClosed = checkSubmissionClosed();
+  const { settings } = useSiteSettings();
+  const isSubmissionClosed = checkSubmissionClosed(settings);
 
   // Если прием работ закрыт - показываем заглушку
   if (isSubmissionClosed) {

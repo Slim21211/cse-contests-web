@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { useCurrentUser, useIsAdmin } from '../../auth';
+import { useSiteSettings } from '../../settings/siteSettings';
 import type {
   ChildContestSubmission,
   TeamContestSubmission,
@@ -47,9 +49,17 @@ const Results = () => {
   const [activeTab, setActiveTab] = useState<ContestType>('child');
   const [results, setResults] = useState<SubmissionWithStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useCurrentUser();
+  const isAdmin = useIsAdmin(user);
+  const { settings, loaded: settingsLoaded } = useSiteSettings();
+  // До публикации итогов страницу видят только админы.
+  const canView = settings.resultsPublished || isAdmin === true;
+  const checking =
+    !settingsLoaded || (!settings.resultsPublished && !!user && isAdmin === null);
 
   // Загружаем результаты
   useEffect(() => {
+    if (!canView) return;
     const fetchResults = async () => {
       setLoading(true);
 
@@ -175,7 +185,7 @@ const Results = () => {
     };
 
     fetchResults();
-  }, [activeTab]);
+  }, [activeTab, canView]);
 
   // 🆕 Функция для получения класса медали (только золото для 1 места)
   const getMedalClass = (place: number): string => {
@@ -267,6 +277,29 @@ const Results = () => {
     team: '✨ Командный',
     individual: '⭐ Индивидуальный',
   };
+
+
+  if (checking) {
+    return (
+      <div className="results-container">
+        <Loader label="Загрузка…" />
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="results-container">
+        <Link to="/" className="back-link">
+          ← На главную
+        </Link>
+        <div className="voting-disabled">
+          <h2>Итоги ещё не подведены</h2>
+          <p>Результаты появятся здесь после окончания голосования.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="results-container">

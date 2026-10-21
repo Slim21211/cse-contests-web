@@ -1,0 +1,112 @@
+@use '../../styles/brand' as *;
+
+// Отступ снизу на телефоне — под белый лист, который заезжает на шапку.
+.header {
+  position: relative;
+  overflow: hidden;
+  background: $brand;
+  color: #fff;
+  font-family: $text;
+}
+
+.year {
+  position: absolute;
+  right: -14px;
+  bottom: -22px;
+  font-family: $display;
+  font-weight: 800;
+  font-size: 120px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+  user-select: none;
+
+  @media (min-width: $desktop) {
+    right: 6%;
+    bottom: -70px;
+    font-size: 240px;
+    -webkit-text-stroke-width: 3px;
+  }
+}
+
+.inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 20px 24px 56px;
+
+  @media (min-width: $desktop) {
+    max-width: $container;
+    margin: 0 auto;
+    gap: 40px;
+    padding: 28px 48px 48px;
+  }
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.logo {
+  display: block;
+  height: 32px;
+  width: auto;
+
+  @media (min-width: $desktop) {
+    height: 40px;
+  }
+}
+
+.wordmark {
+  font-family: $display;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @media (min-width: $desktop) {
+    gap: 8px;
+  }
+}
+
+.greeting {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.92);
+
+  @media (min-width: $desktop) {
+    font-size: 17px;
+  }
+}
+
+.title {
+  margin: 0;
+  max-width: 12em;
+  font-family: $display;
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #fff;
+
+  @media (min-width: $desktop) {
+    max-width: none;
+    font-size: 44px;
+    line-height: 1.1;
+  }
+}
