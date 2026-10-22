@@ -1,0 +1,737 @@
+@use '../../styles/brand' as *;
+
+// Голосование. Телефон: лента в одну колонку. От 640px — две колонки, от $desktop — три.
+
+$like-soft: #fdebe3;
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  font-family: $text;
+  color: $brown;
+}
+
+// ——— «На главную» в шапке ———
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+
+  @media (min-width: $desktop) {
+    height: 40px;
+    padding: 0 18px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+}
+
+.backChevron {
+  margin-left: -4px;
+
+  @media (min-width: $desktop) {
+    display: none !important;
+  }
+}
+
+// ——— Лист ———
+
+.sheet {
+  position: relative;
+  flex: 1;
+  margin-top: -28px;
+  padding: 20px 16px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: $desktop) {
+    width: 100%;
+    max-width: $container;
+    margin: 0 auto;
+    padding: 32px 48px 56px;
+    border-radius: 0;
+    box-sizing: border-box;
+    gap: 24px;
+  }
+}
+
+.intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.introText {
+  font-size: 14px;
+  line-height: 1.4;
+  color: $muted;
+
+  @media (min-width: $desktop) {
+    font-size: 15px;
+  }
+}
+
+.counter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: $like-soft;
+  color: $brand-text;
+  font-size: 14px;
+  font-weight: 700;
+
+  @media (min-width: $desktop) {
+    padding: 8px 14px;
+    font-size: 15px;
+  }
+}
+
+.counterLong {
+  @media (max-width: $desktop - 1px) {
+    display: none;
+  }
+}
+
+.error {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fdecea;
+  color: #b42318;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+// ——— Лента ———
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: $desktop) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+.card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid $card-border;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  padding: 0;
+  border: 0;
+  background: $panel;
+  overflow: hidden;
+  cursor: zoom-in;
+  touch-action: manipulation; // без системного зума по двойному тапу — двойной тап наш
+  -webkit-tap-highlight-color: transparent;
+  container-type: size;
+
+  @media (min-width: 640px) {
+    aspect-ratio: 1 / 1;
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(232, 73, 14, 0.4);
+    outline-offset: -3px;
+  }
+}
+
+.mediaImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+// Повёрнутое админом на 90/270°: меняем стороны местами (единицы контейнера).
+.mediaImgSideways {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  object-fit: contain;
+  user-select: none;
+}
+
+.mediaVideo {
+  background: #2b2420;
+  cursor: pointer;
+
+  .mediaImg {
+    object-fit: cover;
+    opacity: 0.92;
+  }
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: $brown;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+
+  svg {
+    margin-left: 3px; // треугольник визуально по центру
+  }
+}
+
+.videoTag {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+// Сердце по двойному тапу
+.burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #fff;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.3));
+  pointer-events: none;
+  animation: burst 0.8s ease forwards;
+}
+
+@keyframes burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+
+  15% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+
+  30% {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+
+  45% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+// ——— Аудио ———
+
+.audio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 20px 16px;
+  background: $panel;
+  box-sizing: border-box;
+
+  // В сетке — квадрат, как у фото, чтобы карточки в ряду были одной высоты.
+  @media (min-width: 640px) {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+.audioPlay {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: $brand;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  svg:first-child {
+    margin-left: 2px;
+  }
+}
+
+.audioBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audioLabel {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: $muted;
+}
+
+.audioSeek {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, $brand var(--p, 0%), #f1e3d9 var(--p, 0%));
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, $brand var(--p, 0%), #f1e3d9 var(--p, 0%));
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border: 0;
+    border-radius: 50%;
+    background: $brand;
+  }
+
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: $brand;
+  }
+}
+
+.audioTime {
+  flex: none;
+  font-size: 13px;
+  color: $muted;
+  font-variant-numeric: tabular-nums;
+}
+
+// ——— Файлы, которые браузер не показывает ———
+
+.fileTile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 116px;
+  padding: 24px 16px;
+  background: $panel;
+  box-sizing: border-box;
+
+  @media (min-width: 640px) {
+    aspect-ratio: 1 / 1;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.fileBadge {
+  flex: none;
+  width: 56px;
+  height: 68px;
+  padding-bottom: 10px;
+  border: 1px solid $card-border;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-family: $display;
+  font-size: 11px;
+  font-weight: 700;
+  color: $brand-text;
+}
+
+.fileText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  @media (min-width: 640px) {
+    flex: none;
+  }
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fileHint {
+  font-size: 13px;
+  color: $muted;
+}
+
+.fileButton {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #e6d8ce;
+  border-radius: 10px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  color: $brown;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+// ——— Подпись и лайк ———
+
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 14px 16px;
+}
+
+.captionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: $muted;
+}
+
+.like {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: 1px solid $card-border;
+  border-radius: 50%;
+  background: #fff;
+  color: $brown;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(232, 73, 14, 0.4);
+    outline-offset: 2px;
+  }
+}
+
+.likeOn {
+  border-color: transparent;
+  background: $like-soft;
+  color: $brand;
+
+  svg {
+    animation: pop 0.3s ease;
+  }
+}
+
+.likeDark {
+  width: 52px;
+  height: 52px;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #fff;
+
+  &.likeOn {
+    border-color: transparent;
+    background: $brand;
+    color: #fff;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+
+  60% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+// ——— Заглушки загрузки ———
+
+.cardSkeleton .media {
+  cursor: default;
+}
+
+.skeletonBlock,
+.skeletonLine {
+  background: linear-gradient(90deg, #f1e7e0 0%, #f8f1ec 50%, #f1e7e0 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.skeletonLine {
+  display: block;
+  height: 14px;
+  margin: 3px 0;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+// ——— Сообщения вместо ленты ———
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.noticeTitle {
+  margin: 0;
+  font-family: $display;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.noticeText {
+  margin: 0;
+  max-width: 28em;
+  font-size: 15px;
+  line-height: 1.5;
+  color: $muted;
+}
+
+.noticeButton {
+  margin-top: 12px;
+  height: 52px;
+  padding: 0 32px;
+  border-radius: 14px;
+  background: $brand;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+// ——— Просмотр на весь экран ———
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  // Сверху место под крестик, снизу — подпись: работа между ними и не уходит под подпись.
+  padding-top: calc(76px + env(safe-area-inset-top));
+  font-family: $text;
+  color: #fff;
+  overscroll-behavior: contain;
+}
+
+.viewerStage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoomBox {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none; // жесты обрабатываем сами
+  cursor: zoom-in;
+}
+
+.zoomLayer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.zoomImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.zoomImgSideways {
+  max-width: 100vh;
+  max-height: 100vw;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.viewerVideo {
+  max-width: 100%;
+  max-height: 100%;
+  background: #000;
+}
+
+.viewerClose {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  right: 16px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 2px;
+  }
+}
+
+.viewerBar {
+  flex: none;
+  padding: 20px 16px calc(24px + env(safe-area-inset-bottom)) 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  @media (min-width: $desktop) {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+
+.viewerCaption {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viewerTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.viewerSub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}

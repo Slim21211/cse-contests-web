@@ -9,8 +9,8 @@ export interface ContestStats {
   total: number;
   /** Из них подал этот пользователь. */
   mine: number;
-  /** Сколько работ пользователь оценил (оценка выше стартовой 1). */
-  rated: number;
+  /** Сколько лайков поставил пользователь (строки в <contest>_votes). */
+  likes: number;
   /** Флаг голосования из contest_settings (по умолчанию включено, как на страницах голосования). */
   votingEnabled: boolean;
 }
@@ -59,7 +59,7 @@ export const useHomeStats = (userId: number | undefined) => {
       const entriesRequest = Promise.all(
         CONTESTS.map(async (c) => {
           const head = { count: 'exact' as const, head: true };
-          const [total, mine, rated] = await Promise.all([
+          const [total, mine, likes] = await Promise.all([
             count(supabase.from(`${c}_contest`).select('id', head).eq('is_active', true)),
             count(
               supabase
@@ -69,11 +69,7 @@ export const useHomeStats = (userId: number | undefined) => {
                 .eq('vk_user_id', userId),
             ),
             count(
-              supabase
-                .from(`${c}_votes`)
-                .select('submission_id', head)
-                .eq('vk_user_id', userId)
-                .gt('rating', 1),
+              supabase.from(`${c}_votes`).select('submission_id', head).eq('vk_user_id', userId),
             ),
           ]);
           return [
@@ -81,7 +77,7 @@ export const useHomeStats = (userId: number | undefined) => {
             {
               total,
               mine,
-              rated: Math.min(rated, total),
+              likes,
             },
           ] as const;
         }),

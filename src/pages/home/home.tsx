@@ -63,37 +63,26 @@ const WorksMeta = ({ stats }: { stats?: ContestStats }) =>
     </span>
   );
 
+/** Голосование: сколько работ в конкурсе и сколько из них лайкнул сам человек. */
 const Progress = ({ stats }: { stats?: ContestStats }) => {
   if (!stats) {
     return (
-      <span className={styles.progress}>
-        <span className={styles.bar} />
-        <span className={styles.progressText}>
-          <Skeleton width={110} />
-        </span>
+      <span className={styles.meta}>
+        <Skeleton width={110} />
       </span>
     );
   }
-  if (stats.total === 0) {
-    return (
-      <span className={styles.progress}>
-        <span className={styles.bar} />
-        <span className={styles.progressText}>Пока нет работ</span>
-      </span>
-    );
-  }
-  const done = stats.rated >= stats.total;
+  if (stats.total === 0) return <span className={styles.meta}>Пока нет работ</span>;
+  const likes = stats.likes ?? 0;
   return (
-    <span className={styles.progress}>
-      <span className={styles.bar}>
-        <span
-          className={cx(styles.barFill, done && styles.barDone)}
-          style={{ width: `${(stats.rated / stats.total) * 100}%` }}
-        />
-      </span>
-      <span className={cx(styles.progressText, done && styles.doneText)}>
-        Оценено {stats.rated} из {stats.total}
-      </span>
+    <span className={styles.meta}>
+      <span>Всего работ: {stats.total}</span>
+      {likes > 0 && (
+        <span className={styles.likes} aria-label={`Ваших лайков: ${likes}`}>
+          <Icon name="heart-filled" size={13} />
+          {likes}
+        </span>
+      )}
     </span>
   );
 };
@@ -340,7 +329,7 @@ const Home = () => {
                     aria-label={`${info.title} конкурс — голосовать`}
                   >
                     {body}
-                    <Arrow muted={!!s && s.total > 0 && s.rated >= s.total} />
+                    <Arrow />
                   </Link>
                 );
               })}

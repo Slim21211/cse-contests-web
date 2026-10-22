@@ -455,6 +455,17 @@ a.card:focus-visible {
   }
 }
 
+.likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #fdebe3;
+  color: $brand-text;
+  font-weight: 600;
+}
+
 .mine {
   padding: 2px 7px;
   border-radius: 6px;
