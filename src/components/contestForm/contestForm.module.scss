@@ -44,14 +44,10 @@ $error-soft: #fdecea;
 }
 
 .backChevron {
-  width: 8px;
-  height: 8px;
-  border-left: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translateX(1px) rotate(45deg);
+  margin-left: -4px;
 
   @media (min-width: $desktop) {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -365,8 +361,6 @@ $error-soft: #fdecea;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  font-weight: 700;
 }
 
 .dropTitle {

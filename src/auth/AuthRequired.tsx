@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import VkLoginButton from './VkLoginButton';
+import Icon from '../components/icon/Icon';
 import { useSiteSettings, isSubmissionClosed, formatDay } from '../settings/siteSettings';
 import { festiveYear } from '../utils/festiveYear';
 import styles from './authRequired.module.scss';
@@ -44,7 +45,8 @@ const AuthRequired = ({ message, showBackLink }: Props) => {
         <Logo />
         {showBackLink && (
           <Link to="/" className={styles.back}>
-            ← На главную
+            <Icon name="arrow-left" size={18} />
+            На главную
           </Link>
         )}
       </div>

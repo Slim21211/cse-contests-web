@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCurrentUser, useIsAdmin, AuthRequired, logout } from '../../auth';
 import BrandHeader from '../../components/brandHeader/brandHeader';
+import Icon from '../../components/icon/Icon';
 import {
   useSiteSettings,
   isSubmissionClosed,
@@ -37,7 +38,7 @@ const cx = (...names: (string | false | undefined)[]) => names.filter(Boolean).j
 
 const Arrow = ({ muted }: { muted?: boolean }) => (
   <span className={cx(styles.arrow, muted && styles.arrowMuted)} aria-hidden="true">
-    →
+    <Icon name="arrow-right" />
   </span>
 );
 
@@ -351,7 +352,7 @@ const Home = () => {
           {isAdmin && (
             <nav className={cx(styles.bottomNav, styles.mobileOnly)}>
               <Link to="/admin" className={styles.bottomLink}>
-                Админ-панель <span aria-hidden="true">→</span>
+                Админ-панель <Icon name="arrow-right" size={18} />
               </Link>
             </nav>
           )}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { cx } from './fields';
+import Icon from '../icon/Icon';
 import s from './contestForm.module.scss';
 
 interface Props {
@@ -93,7 +94,7 @@ const FileDrop = ({
           className={cx(s.drop, dragging && s.dropActive, invalid && s.dropInvalid)}
         >
           <span className={s.dropIcon} aria-hidden="true">
-            ↑
+            <Icon name="arrow-up" size={22} />
           </span>
           <span className={s.dropTitle}>
             Выберите файл <span className={s.dropOr}>или перетащите сюда</span>

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import BrandHeader from '../brandHeader/brandHeader';
+import Icon from '../icon/Icon';
 import { supabase } from '../../lib/supabase';
 import {
   useSiteSettings,
@@ -78,7 +79,7 @@ const ContestFormPage = ({
         subtitle={subtitle}
         actions={
           <Link to="/" className={s.back}>
-            <span className={s.backChevron} aria-hidden="true" />
+            <Icon name="chevron-left" size={18} className={s.backChevron} />
             <span className={s.backText}>На главную</span>
           </Link>
         }
