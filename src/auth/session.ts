@@ -28,6 +28,13 @@ export const setSessionUser = (user: AppUser | null) => {
   listeners.forEach((fn) => fn());
 };
 
+// Вход, выход или продление токена в другой вкладке — обновляем и эту.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY || e.key === null) listeners.forEach((fn) => fn());
+  });
+}
+
 export const subscribeSession = (fn: () => void) => {
   listeners.add(fn);
   return () => {

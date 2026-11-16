@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Сроки конкурса и публикация итогов — одна строка таблицы site_settings (id = 1),
@@ -66,12 +66,12 @@ let state: { settings: SiteSettings; loaded: boolean } = {
   loaded: stored !== null,
 };
 const listeners = new Set<() => void>();
-let request: Promise<SiteSettings> | null = null;
+const notify = () => listeners.forEach((l) => l());
 
 const emit = (settings: SiteSettings) => {
   store(settings);
   state = { settings, loaded: true };
-  listeners.forEach((l) => l());
+  notify();
 };
 
 const fromRow = (row: Row | null): SiteSettings => ({
@@ -81,22 +81,56 @@ const fromRow = (row: Row | null): SiteSettings => ({
   resultsPublished: row?.results_published === true,
 });
 
-/** Загружает настройки один раз на всё приложение и возвращает их. */
-export const loadSiteSettings = () => {
-  request ??= (async () => {
+// Настройки перечитываем, если с прошлой загрузки прошло больше REFRESH_MS
+// (при открытии страницы и при возвращении на вкладку): админ мог что-то поменять.
+const REFRESH_MS = 5 * 60 * 1000;
+let request: Promise<SiteSettings> | null = null;
+let fetchedAt = 0;
+
+/** Загружает настройки (не чаще раза в REFRESH_MS) и возвращает их. */
+export const loadSiteSettings = (force = false) => {
+  if (request && !force && Date.now() - fetchedAt < REFRESH_MS) return request;
+  fetchedAt = Date.now();
+  request = (async () => {
     const { data, error } = await supabase
       .from('site_settings')
       .select('submission_deadline, voting_start, voting_deadline, results_published')
       .eq('id', 1)
       .maybeSingle();
-    if (error) console.warn('site_settings недоступна (нужна миграция?):', error.message);
+    if (error) {
+      // Сеть или база недоступны: оставляем то, что есть (кэш), и попробуем при следующем обращении.
+      console.warn('site_settings не загрузились:', error.message);
+      fetchedAt = 0;
+      if (!state.loaded) {
+        state = { ...state, loaded: true };
+        notify();
+      }
+      return state.settings;
+    }
     emit(fromRow((data as Row | null) ?? null));
     return state.settings;
   })();
   return request;
 };
 
-/** Настройки сайта; до загрузки — значения по умолчанию (loaded = false). */
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && listeners.size) void loadSiteSettings();
+  });
+}
+
+/** Ближайший из сроков (приём, начало и конец голосования), который ещё не наступил. */
+const nextBoundary = (s: SiteSettings, now: number) =>
+  [s.submissionDeadline, s.votingStart, s.votingEnd]
+    .map((d) => d?.getTime() ?? NaN)
+    .filter((t) => t > now)
+    .reduce((a, b) => Math.min(a, b), Infinity);
+
+/**
+ * Настройки сайта; до загрузки — значения по умолчанию (loaded = false).
+ * Когда наступает один из сроков, компонент перерисовывается сам: форма закрывается,
+ * голосование открывается и т. д. без перезагрузки страницы.
+ */
 export const useSiteSettings = () => {
   const snapshot = useSyncExternalStore(
     (l) => {
@@ -105,9 +139,21 @@ export const useSiteSettings = () => {
     },
     () => state,
   );
+  const [, setTick] = useState(0);
+
   useEffect(() => {
     void loadSiteSettings();
   }, []);
+
+  useEffect(() => {
+    const at = nextBoundary(snapshot.settings, Date.now());
+    if (!Number.isFinite(at)) return;
+    // setTimeout не умеет ждать дольше ~24 дней; раз в сутки просто проверяем снова.
+    const delay = Math.min(at - Date.now() + 1000, 24 * 3600 * 1000);
+    const timer = setTimeout(() => setTick((n) => n + 1), delay);
+    return () => clearTimeout(timer);
+  });
+
   return snapshot;
 };
 
@@ -124,6 +170,7 @@ export const saveSiteSettings = async (next: SiteSettings): Promise<string | nul
   if (error) return error.message;
   const saved = { ...next, submissionDeadline: next.submissionDeadline ?? envDeadline };
   request = Promise.resolve(saved);
+  fetchedAt = Date.now();
   emit(saved);
   return null;
 };

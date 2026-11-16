@@ -12,7 +12,7 @@ subscribeSession(() => {
 
 export const useCurrentUser = () => {
   const user = useSyncExternalStore(subscribeSession, () => cached);
-  return { user, isLoading: false };
+  return { user };
 };
 
 export const logout = async () => {

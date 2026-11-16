@@ -9,7 +9,7 @@ interface FileRendererProps {
   posterUrl?: string | null;
 }
 
-const FileRenderer: React.FC<FileRendererProps> = ({
+const FileView: React.FC<FileRendererProps> = ({
   filePath,
   rotation = 0,
   posterUrl,
@@ -19,25 +19,22 @@ const FileRenderer: React.FC<FileRendererProps> = ({
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [videoStarted, setVideoStarted] = useState(false);
+  // Растёт при «Попробовать снова»: новый key пересоздаёт <video> и загрузку с нуля.
+  const [videoAttempt, setVideoAttempt] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // 🆕 КРИТИЧЕСКИ ВАЖНО: Сбрасываем состояние при размонтировании
+  // Уходя со страницы, обрываем скачивание видео: браузер иначе может продолжать его в фоне.
   useEffect(() => {
+    const video = videoRef;
     return () => {
-      setVideoError(false);
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.src = '';
-        videoRef.current.load();
+      const el = video.current;
+      if (el) {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
       }
     };
   }, []);
-
-  // 🆕 Сбрасываем состояние при смене файла
-  useEffect(() => {
-    setVideoError(false);
-    setVideoStarted(false);
-  }, [filePath]);
 
   if (!filePath) {
     return <div className={styles.fallback}>Файл отсутствует</div>;
@@ -70,20 +67,7 @@ const FileRenderer: React.FC<FileRendererProps> = ({
   if (['mp4', 'mov', 'webm', 'ogg', 'avi', 'mkv'].includes(ext)) {
     const handleRetry = () => {
       setVideoError(false);
-
-      // 🆕 Принудительно очищаем video element
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
-
-        // Небольшая задержка перед загрузкой
-        setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.load();
-          }
-        }, 200);
-      }
+      setVideoAttempt((n) => n + 1);
     };
 
     // Обложка вместо тяжёлого видео: ролик начинает грузиться только по клику.
@@ -131,7 +115,7 @@ const FileRenderer: React.FC<FileRendererProps> = ({
         ) : (
           <video
             ref={videoRef}
-            key={videoUrl}
+            key={videoAttempt}
             controls
             playsInline
             preload="metadata"
@@ -140,9 +124,6 @@ const FileRenderer: React.FC<FileRendererProps> = ({
             className={styles.media}
             onError={() => {
               setVideoError(true);
-            }}
-            onLoadStart={() => {
-              setVideoError(false);
             }}
             style={{
               width: '100%',
@@ -359,5 +340,10 @@ const FileRenderer: React.FC<FileRendererProps> = ({
     </div>
   );
 };
+
+/** Превью файла работы. Состояние (ошибки, загрузка) сбрасывается при смене файла. */
+const FileRenderer: React.FC<FileRendererProps> = (props) => (
+  <FileView key={props.filePath} {...props} />
+);
 
 export default FileRenderer;

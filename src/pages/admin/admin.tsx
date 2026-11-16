@@ -23,19 +23,18 @@ type Submission =
   | TeamContestSubmission
   | IndividualContestSubmission;
 
+const DEFAULT_ENABLED: Record<ContestType, boolean> = { child: true, team: true, individual: true };
+
 const Admin = () => {
-  const { user, isLoading: userLoading } = useCurrentUser();
-  const isAdmin = useIsAdmin(user) === true;
+  const { user } = useCurrentUser();
+  const isAdmin = useIsAdmin(user);
   const [activeTab, setActiveTab] = useState<ContestType>('child');
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [votingEnabled, setVotingEnabled] = useState<
-    Record<ContestType, boolean>
-  >({
-    child: true,
-    team: true,
-    individual: true,
-  });
+  // Работы вместе с вкладкой, к которой они относятся: пока грузится новая вкладка,
+  // старый список не показываем и не правим.
+  const [loaded, setLoaded] = useState<{ tab: ContestType; works: Submission[] | null } | null>(
+    null
+  );
+  const [votingEnabled, setVotingEnabled] = useState(DEFAULT_ENABLED);
   const [deleteModal, setDeleteModal] = useState<{
     show: boolean;
     id: string | null;
@@ -44,121 +43,119 @@ const Admin = () => {
     id: null,
   });
 
-  // Загружаем данные
+  const submissions = loaded?.tab === activeTab ? loaded.works : undefined;
+  const setSubmissions = (update: (prev: Submission[]) => Submission[]) =>
+    setLoaded((prev) => (prev?.works ? { ...prev, works: update(prev.works) } : prev));
+
+  // Настройки голосования — один раз.
   useEffect(() => {
     if (!isAdmin) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-
-      // Настройки голосования
-      const { data: settings } = await supabase
-        .from('contest_settings')
-        .select('contest_type, voting_enabled');
-
-      if (settings) {
-        const enabled: Record<ContestType, boolean> = {
-          child: true,
-          team: true,
-          individual: true,
-        };
-        settings.forEach((s) => {
+    let cancelled = false;
+    supabase
+      .from('contest_settings')
+      .select('contest_type, voting_enabled')
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error('Настройки голосования не загрузились:', error);
+          return;
+        }
+        const enabled = { ...DEFAULT_ENABLED };
+        data.forEach((s) => {
           enabled[s.contest_type as ContestType] = s.voting_enabled;
         });
         setVotingEnabled(enabled);
-      }
-
-      // Работы
-      const tableName = `${activeTab}_contest`;
-      // Только текущий сезон; прошлые остаются в базе.
-      const { data: works } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('season', festiveYear())
-        .order('created_at', { ascending: false });
-
-      setSubmissions(works || []);
-      setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
+  }, [isAdmin]);
 
-    fetchData();
+  // Работы текущей вкладки, только текущий сезон; прошлые остаются в базе.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    supabase
+      .from(`${activeTab}_contest`)
+      .select('*')
+      .eq('season', festiveYear())
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error('Работы не загрузились:', error);
+        setLoaded({ tab: activeTab, works: error ? null : ((data ?? []) as Submission[]) });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isAdmin, activeTab]);
 
-  const toggleVoting = async () => {
-    const newValue = !votingEnabled[activeTab];
+  /** Обновляет работу; база может молча не тронуть строку (RLS) — это тоже ошибка. */
+  const updateWork = async (id: string, patch: Record<string, unknown>, what: string) => {
+    const { data, error } = await supabase
+      .from(`${activeTab}_contest`)
+      .update(patch)
+      .eq('id', id)
+      .select('id');
+    if (error || !data?.length) {
+      console.error(`Ошибка: ${what}`, error);
+      alert(`Не удалось ${what}. ${error?.message ?? 'Нет прав или работа не найдена.'}`);
+      return false;
+    }
+    return true;
+  };
 
-    const { error } = await supabase
+  const toggleVoting = async () => {
+    const contest = activeTab;
+    const newValue = !votingEnabled[contest];
+
+    const { data, error } = await supabase
       .from('contest_settings')
       .update({
         voting_enabled: newValue,
         updated_at: new Date().toISOString(),
       })
-      .eq('contest_type', activeTab);
+      .eq('contest_type', contest)
+      .select('contest_type');
 
-    if (!error) {
-      setVotingEnabled((prev) => ({ ...prev, [activeTab]: newValue }));
+    if (error || !data?.length) {
+      console.error('Ошибка переключения голосования:', error);
+      alert(
+        'Не удалось переключить голосование. ' +
+          (error?.message ?? 'В contest_settings нет строки для этого конкурса.')
+      );
+      return;
     }
+    setVotingEnabled((prev) => ({ ...prev, [contest]: newValue }));
   };
 
   const handleDelete = async () => {
-    if (!deleteModal.id || !user) return;
-
-    const tableName = `${activeTab}_contest`;
-
-    const { error } = await supabase
-      .from(tableName)
-      .update({
-        is_active: false,
-        moderated_at: new Date().toISOString(),
-        moderated_by: user.id,
-      })
-      .eq('id', deleteModal.id)
-      .select();
-
-    if (error) {
-      console.error('Ошибка при скрытии:', error);
-      alert('Ошибка: ' + error.message);
-    } else {
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.id === deleteModal.id ? { ...s, is_active: false } : s
-        )
-      );
-    }
-
+    const id = deleteModal.id;
     setDeleteModal({ show: false, id: null });
+    if (!id || !user) return;
+
+    const ok = await updateWork(
+      id,
+      { is_active: false, moderated_at: new Date().toISOString(), moderated_by: user.id },
+      'скрыть работу'
+    );
+    if (ok) {
+      setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: false } : s)));
+    }
   };
 
   const handleRestore = async (id: string) => {
-    const tableName = `${activeTab}_contest`;
-
-    const { error } = await supabase
-      .from(tableName)
-      .update({ is_active: true })
-      .eq('id', id);
-
-    if (!error) {
-      setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, is_active: true } : s))
-      );
+    if (await updateWork(id, { is_active: true }, 'восстановить работу')) {
+      setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: true } : s)));
     }
   };
 
   const rotateImage = async (id: string, currentRotation: number = 0) => {
-    const tableName = `${activeTab}_contest`;
     const newRotation = (currentRotation + 90) % 360; // Поворачиваем на 90°
-
-    const { error } = await supabase
-      .from(tableName)
-      .update({ rotation: newRotation })
-      .eq('id', id);
-
-    if (!error) {
+    if (await updateWork(id, { rotation: newRotation }, 'повернуть изображение')) {
       setSubmissions((prev) =>
         prev.map((s) => (s.id === id ? { ...s, rotation: newRotation } : s))
       );
-    } else {
-      console.error('Ошибка поворота:', error);
     }
   };
 
@@ -232,10 +229,10 @@ const Admin = () => {
     );
   };
 
-  if (userLoading) {
+  if (user && isAdmin === null) {
     return (
       <div className="admin-container">
-        <Loader label="Загрузка работ…" />
+        <Loader label="Проверяем доступ…" />
       </div>
     );
   }
@@ -297,11 +294,15 @@ const Admin = () => {
             {votingEnabled[activeTab] ? '✓ Включено' : '✗ Выключено'}
           </button>
         </div>
-        <span>Всего работ: {submissions.length}</span>
+        {submissions && <span>Всего работ: {submissions.length}</span>}
       </div>
 
-      {loading ? (
+      {submissions === undefined ? (
         <Loader label="Загрузка работ…" />
+      ) : submissions === null ? (
+        <div className="no-access">
+          <p>Не удалось загрузить работы. Обновите страницу.</p>
+        </div>
       ) : (
         <div className="admin-grid">
           {submissions.map((submission) => (

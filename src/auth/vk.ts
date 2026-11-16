@@ -112,25 +112,38 @@ export class VkSessionExpiredError extends Error {
 
 let refreshing: Promise<string> | null = null;
 
+const isFresh = (user: AppUser | null): user is AppUser & { accessToken: string } =>
+  !!user?.accessToken && (!user.expiresAt || user.expiresAt - Date.now() > 2 * 60 * 1000);
+
+/** Выполняет fn, пока другие вкладки ждут (Web Locks); без поддержки — просто выполняет. */
+const withTabLock = async <T,>(fn: () => Promise<T>): Promise<T> =>
+  typeof navigator !== 'undefined' && navigator.locks
+    ? await navigator.locks.request('cse-vk-refresh', fn)
+    : fn();
+
 /**
  * Действующий access token текущего пользователя. За 2 минуты до истечения
  * продлевает его через refresh token, без повторного входа.
+ *
+ * Refresh token у VK одноразовый: если две вкладки продлят его одновременно, вторая
+ * получит отказ. Поэтому продление идёт под межвкладочной блокировкой, а внутри неё
+ * сессия перечитывается — возможно, другая вкладка уже всё продлила.
  */
 export const getFreshAccessToken = async (): Promise<string> => {
   const user = getSessionUser();
-  if (!user?.accessToken) throw new VkSessionExpiredError();
+  if (isFresh(user)) return user.accessToken;
+  if (!user?.refreshToken || !user.deviceId) throw new VkSessionExpiredError();
 
-  const stillValid = !user.expiresAt || user.expiresAt - Date.now() > 2 * 60 * 1000;
-  if (stillValid) return user.accessToken;
-  if (!user.refreshToken || !user.deviceId) throw new VkSessionExpiredError();
-
-  // Параллельные запросы ждут одно и то же продление.
-  refreshing ??= (async () => {
+  // Параллельные запросы этой вкладки ждут одно и то же продление.
+  refreshing ??= withTabLock(async () => {
+    const current = getSessionUser();
+    if (current?.id !== user.id) throw new VkSessionExpiredError(); // вышел или сменил аккаунт
+    if (isFresh(current)) return current.accessToken; // продлила другая вкладка
     try {
       init();
-      const tokens = await VKID.Auth.refreshToken(user.refreshToken!, user.deviceId!);
+      const tokens = await VKID.Auth.refreshToken(current.refreshToken!, current.deviceId!);
       setSessionUser({
-        ...user,
+        ...current,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: Date.now() + tokens.expires_in * 1000,
@@ -140,11 +153,14 @@ export const getFreshAccessToken = async (): Promise<string> => {
       console.error('VK token refresh failed:', err);
       // Нет сети — это не повод разлогинивать: пробросим как есть, проверим позже.
       if (err instanceof TypeError || (typeof navigator !== 'undefined' && !navigator.onLine)) throw err;
+      // Браузер без Web Locks: другая вкладка могла успеть продлить токен раньше нас.
+      const after = getSessionUser();
+      if (after?.id === user.id && isFresh(after)) return after.accessToken;
       throw new VkSessionExpiredError();
-    } finally {
-      refreshing = null;
     }
-  })();
+  }).finally(() => {
+    refreshing = null;
+  });
   return refreshing;
 };
 

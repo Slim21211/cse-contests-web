@@ -23,7 +23,8 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
   const [error, setError] = useState<SubmitError | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const submit = async (file: File, row: Record<string, unknown>) => {
+  /** Возвращает true, если работа сохранена. */
+  const submit = async (file: File, row: Record<string, unknown>): Promise<boolean> => {
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -66,6 +67,7 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
       }
 
       setSuccess(true);
+      return true;
     } catch (err) {
       const custom = err as Partial<SubmitError> & { name?: string; message?: string };
       if (custom.user && custom.log) {
@@ -83,6 +85,7 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
         });
         console.error('Непредвиденная ошибка:', err);
       }
+      return false;
     } finally {
       setLoading(false);
       setRetrying(false);

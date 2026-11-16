@@ -32,7 +32,8 @@ const Team = () => {
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(0);
 
-  if (isSubmissionClosed(settings)) {
+  // Срок вышел, пока работа грузилась, — даём досмотреть результат отправки.
+  if (isSubmissionClosed(settings) && !work.loading && !work.success) {
     return (
       <ContestFormPage contest="team">
         <SubmissionClosed />
@@ -87,7 +88,7 @@ const Team = () => {
       city: row.city,
       participants: row.participants,
     });
-    void work.submit(file, row).then(() => setSent((n) => n + 1));
+    void work.submit(file, row).then((ok) => ok && setSent((n) => n + 1));
   };
 
   const busy = work.loading;

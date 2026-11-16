@@ -5,9 +5,17 @@ import type { ContestType } from '../home/useHomeStats';
 // Лайк = строка в таблице <contest>_votes (submission_id + vk_user_id).
 // Снять лайк = удалить строку. Колонка rating сохранена ради совместимости (всегда 1).
 
+const EMPTY = new Set<string>();
+
 export const useLikes = (contest: ContestType, userId: number | undefined, canVote: boolean) => {
-  const [liked, setLiked] = useState<Set<string>>(new Set());
-  const [loaded, setLoaded] = useState(false);
+  // Лайки привязаны к паре конкурс + пользователь: после смены любого из них
+  // старый набор не показываем, пока не загрузится новый.
+  const key = `${contest}:${userId ?? ''}`;
+  const [state, setState] = useState<{ key: string; liked: Set<string>; loaded: boolean }>({
+    key: '',
+    liked: EMPTY,
+    loaded: false,
+  });
   const [error, setError] = useState<string | null>(null);
   // Работы, по которым запрос ещё идёт: повторные нажатия в это время игнорируем.
   const pending = useRef(new Set<string>());
@@ -21,20 +29,28 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
       .then(({ data, error: err }) => {
         if (cancelled) return;
         if (err) console.error('Лайки не загрузились:', err);
-        setLiked(new Set((data ?? []).map((r) => r.submission_id as string)));
-        setLoaded(true);
+        setState({
+          key: `${contest}:${userId}`,
+          liked: new Set((data ?? []).map((r) => r.submission_id as string)),
+          loaded: true,
+        });
       });
     return () => {
       cancelled = true;
     };
   }, [contest, userId]);
 
+  const current = state.key === key;
+  const liked = current ? state.liked : EMPTY;
+  const loaded = current && state.loaded;
+
   const apply = (id: string, on: boolean) =>
-    setLiked((prev) => {
-      const next = new Set(prev);
+    setState((prev) => {
+      if (prev.key !== key) return prev;
+      const next = new Set(prev.liked);
       if (on) next.add(id);
       else next.delete(id);
-      return next;
+      return { ...prev, liked: next };
     });
 
   /** Поставить (on = true) или снять лайк. Интерфейс меняется сразу, при ошибке — откат. */
@@ -80,7 +96,7 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
         pending.current.delete(id);
       }
     },
-    [contest, userId, canVote],
+    [contest, userId, canVote, key],
   );
 
   return { liked, loaded, error, setLike };
