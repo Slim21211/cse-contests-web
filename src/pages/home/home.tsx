@@ -208,8 +208,9 @@ const Home = () => {
             <div className={styles.cards}>
               {CONTESTS.map((c) => {
                 const info = CONTEST_INFO[c];
-                // Админам форма открыта всегда (база это разрешает) — например, для проверки до старта.
-                const canSubmit = submission === 'open' || isAdmin;
+                // Главная у всех одинаковая. Админ может открыть форму вне сроков по прямой
+                // ссылке (/child-form и т. п.) — это разрешают форма и база.
+                const canSubmit = submission === 'open';
 
                 if (!canSubmit && submission === 'upcoming') {
                   return (
