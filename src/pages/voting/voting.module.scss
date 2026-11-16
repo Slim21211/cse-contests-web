@@ -46,6 +46,51 @@ $like-soft: #fdebe3;
   }
 }
 
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 8px 12px 16px;
+  border-radius: 16px;
+  background: $panel;
+}
+
+.hintText {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: $muted;
+
+  b {
+    color: $brown;
+    font-weight: 600;
+  }
+
+  @media (min-width: $desktop) {
+    font-size: 15px;
+  }
+}
+
+.hintClose {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  margin: -6px 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: $muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(79, 44, 29, 0.06);
+  }
+}
+
 .error {
   padding: 12px 14px;
   border-radius: 12px;

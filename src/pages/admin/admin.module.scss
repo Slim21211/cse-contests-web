@@ -250,3 +250,116 @@
   background: #fff;
   color: $brown;
 }
+
+// ——— Статистика голосования ———
+
+.stats {
+  border-radius: 20px;
+  background: $panel;
+  padding: 0 16px;
+}
+
+.statsSummary {
+  padding: 16px 0;
+  font-family: $display;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.statsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.statsNote {
+  margin: 0;
+  padding-bottom: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: $muted;
+
+  b {
+    color: $brown;
+  }
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 76px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+}
+
+.barLabel {
+  color: $muted;
+  white-space: nowrap;
+}
+
+.barTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: #efe5de;
+  overflow: hidden;
+}
+
+.barFill,
+.barFillFull {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #d9b8a6;
+}
+
+.barFillFull {
+  background: $brand;
+}
+
+.barValue {
+  text-align: right;
+  font-weight: 600;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid $line;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+    white-space: normal;
+  }
+
+  th {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: $muted;
+  }
+}
+
+.changed {
+  color: $brand-text;
+  font-weight: 700;
+}

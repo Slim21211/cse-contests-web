@@ -9,6 +9,7 @@ import MediaViewer from '../voting/MediaViewer';
 import { toWork, type Row } from '../voting/toWork';
 import SiteSettingsPanel from './SiteSettingsPanel';
 import ConfirmDialog from './ConfirmDialog';
+import VotingStats from './VotingStats';
 import { festiveYear } from '../../utils/festiveYear';
 import { cx } from '../../utils/cx';
 import type { ContestType } from '../../contests';
@@ -197,6 +198,8 @@ const Admin = () => {
               </span>
             </button>
           </div>
+
+          <VotingStats contest={contest} />
 
           {works === undefined ? (
             <Loader label="Загрузка работ…" />

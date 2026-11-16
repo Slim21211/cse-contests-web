@@ -19,7 +19,7 @@ import s from './results.module.scss';
 interface ResultRow {
   place: number;
   likes: number | null;
-  /** Только в архиве 2026 — тогда голосовали звёздами. */
+  /** Балл: сумма взвешенных лайков; в архиве 2026 — средняя оценка звёздами (лайков там нет). */
   score: number | null;
   work: Row;
 }
@@ -51,6 +51,7 @@ const Score = ({ row }: { row: ResultRow }) => {
         <span className={s.statLabel}>
           {/* «4,75 балла», но «5 баллов» */}
           {Number.isInteger(score) ? plural(score, 'балл', 'балла', 'баллов') : 'балла'}
+          {row.likes !== null && ` · ${row.likes} ${plural(row.likes, 'лайк', 'лайка', 'лайков')}`}
         </span>
       </span>
     );

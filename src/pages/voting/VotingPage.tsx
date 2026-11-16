@@ -48,6 +48,39 @@ const Layout = ({
   </PageLayout>
 );
 
+const HINT_KEY = 'cse-weight-hint-hidden';
+
+/** Подсказка о взвешенных лайках. Закрыл — больше не показываем в этом браузере. */
+const WeightHint = () => {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(HINT_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (hidden) return null;
+  const close = () => {
+    setHidden(true);
+    try {
+      localStorage.setItem(HINT_KEY, '1');
+    } catch {
+      /* не запомним — покажем ещё раз */
+    }
+  };
+  return (
+    <div className={s.hint} role="note">
+      <p className={s.hintText}>
+        <b>Чем больше работ вы отметите, тем весомее каждый ваш лайк.</b> Так голосование
+        получается честнее: посмотрите всю ленту и отметьте всё, что понравилось.
+      </p>
+      <button type="button" className={s.hintClose} onClick={close} aria-label="Скрыть подсказку">
+        <Icon name="close" size={18} />
+      </button>
+    </div>
+  );
+};
+
 const VotingPage = ({ contest }: { contest: ContestType }) => {
   const { user } = useCurrentUser();
   const { settings, loaded: settingsLoaded } = useSiteSettings();
@@ -171,6 +204,8 @@ const VotingPage = ({ contest }: { contest: ContestType }) => {
           {myLikes}
         </span>
       </div>
+
+      <WeightHint />
 
       {(likes.error || loadError) && (
         <div className={s.error} role="alert">
