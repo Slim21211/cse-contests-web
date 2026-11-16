@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { cx } from './fields';
+import { cx } from '../../utils/cx';
+import { formatSize } from '../../utils/formatSize';
 import Icon from '../icon/Icon';
 import s from './contestForm.module.scss';
 
@@ -20,12 +21,57 @@ const kindOf = (file: File) => {
   return 'Файл';
 };
 
-export const formatSize = (bytes: number) => {
-  const mb = bytes / 1024 / 1024;
-  if (mb < 1) return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
-  if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0).replace('.', ',')} МБ`;
-  return `${(mb / 1024).toFixed(1).replace('.', ',')} ГБ`;
+/**
+ * Превью выбранного фото или видео. Ссылку на файл создаёт и освобождает эффект,
+ * прямо в элементе. Компонент пересоздаётся при смене файла (key), так что
+ * previewFailed сбрасывается сам.
+ */
+const FilePreview = ({ file }: { file: File }) => {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+
+  useEffect(() => {
+    const el = imgRef.current ?? videoRef.current;
+    if (!el) return;
+    const url = URL.createObjectURL(file);
+    el.src = url;
+    return () => {
+      el.removeAttribute('src');
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
+
+  if (previewFailed) return null;
+  if (isImage) {
+    return (
+      <img
+        ref={imgRef}
+        alt="Превью выбранного файла"
+        className={s.preview}
+        onError={() => setPreviewFailed(true)}
+      />
+    );
+  }
+  if (isVideo) {
+    return (
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        preload="metadata"
+        className={s.preview}
+        onError={() => setPreviewFailed(true)}
+      />
+    );
+  }
+  return null;
 };
+
+/** Ключ файла для пересоздания превью. */
+const fileKey = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
 
 /** Выбор файла: зона «нажмите или перетащите», после выбора — превью и «Заменить». */
 const FileDrop = ({
@@ -37,21 +83,7 @@ const FileDrop = ({
   accept = 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.csv,.zip,.rar,.7z,.heic,.heif',
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [url, setUrl] = useState<string | null>(null);
-  const [previewFailed, setPreviewFailed] = useState(false);
   const [dragging, setDragging] = useState(false);
-
-  // Ссылка на файл для превью; освобождаем при смене файла.
-  useEffect(() => {
-    setPreviewFailed(false);
-    if (!file) {
-      setUrl(null);
-      return;
-    }
-    const next = URL.createObjectURL(file);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [file]);
 
   const pick = (e: ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.files?.[0] ?? null);
@@ -71,9 +103,6 @@ const FileDrop = ({
     const dropped = e.dataTransfer.files?.[0];
     if (dropped) onChange(dropped);
   };
-
-  const isImage = file?.type.startsWith('image/');
-  const isVideo = file?.type.startsWith('video/');
 
   return (
     <div onDragOver={onDragOver} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
@@ -103,24 +132,7 @@ const FileDrop = ({
         </label>
       ) : (
         <div className={cx(s.fileCard, dragging && s.dropActive)}>
-          {url && isImage && !previewFailed && (
-            <img
-              src={url}
-              alt="Превью выбранного файла"
-              className={s.preview}
-              onError={() => setPreviewFailed(true)}
-            />
-          )}
-          {url && isVideo && !previewFailed && (
-            <video
-              src={url}
-              controls
-              playsInline
-              preload="metadata"
-              className={s.preview}
-              onError={() => setPreviewFailed(true)}
-            />
-          )}
+          <FilePreview key={fileKey(file)} file={file} />
           <div className={s.fileRow}>
             <span className={s.fileMeta}>
               <span className={s.fileName}>{file.name}</span>

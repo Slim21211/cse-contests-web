@@ -5,7 +5,7 @@ import {
   getConnectionInfo,
   type ContestType,
 } from '../../utils/uploadUtils';
-import { insertSubmission } from '../../utils/submissions';
+import { supabase } from '../../lib/supabase';
 
 interface SubmitError {
   user: string;
@@ -39,7 +39,7 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
       });
       setProgress(100);
 
-      const insertError = await insertSubmission(`${contest}_contest`, {
+      const { error: insertError } = await supabase.from(`${contest}_contest`).insert({
         ...row,
         file_url: fileUrl,
         ...(posterUrl ? { poster_url: posterUrl } : {}),

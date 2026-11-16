@@ -1,29 +1,24 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   useSiteSettings,
   saveSiteSettings,
+  type SiteSettings,
   toMoscowInput,
   fromMoscowInput,
 } from '../../settings/siteSettings';
 import styles from './siteSettingsPanel.module.scss';
 
-/** Сроки приёма работ и голосования, публикация итогов. Время — московское. */
-const SiteSettingsPanel = () => {
-  const { settings, loaded } = useSiteSettings();
-  const [submission, setSubmission] = useState('');
-  const [votingStart, setVotingStart] = useState('');
-  const [votingEnd, setVotingEnd] = useState('');
-  const [published, setPublished] = useState(false);
+/**
+ * Форма настроек. Черновик берётся из настроек один раз при появлении формы:
+ * фоновое обновление настроек не затирает то, что админ сейчас вводит.
+ */
+const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: boolean }) => {
+  const [submission, setSubmission] = useState(() => toMoscowInput(initial.submissionDeadline));
+  const [votingStart, setVotingStart] = useState(() => toMoscowInput(initial.votingStart));
+  const [votingEnd, setVotingEnd] = useState(() => toMoscowInput(initial.votingEnd));
+  const [published, setPublished] = useState(initial.resultsPublished);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
-
-  useEffect(() => {
-    if (!loaded) return;
-    setSubmission(toMoscowInput(settings.submissionDeadline));
-    setVotingStart(toMoscowInput(settings.votingStart));
-    setVotingEnd(toMoscowInput(settings.votingEnd));
-    setPublished(settings.resultsPublished);
-  }, [loaded, settings]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -113,6 +108,13 @@ const SiteSettingsPanel = () => {
       </div>
     </form>
   );
+};
+
+/** Сроки приёма работ и голосования, публикация итогов. Время — московское. */
+const SiteSettingsPanel = () => {
+  const { settings, loaded } = useSiteSettings();
+  // До загрузки форма заблокирована; после — создаётся заново уже с настоящими значениями.
+  return <SettingsForm key={String(loaded)} initial={settings} loaded={loaded} />;
 };
 
 export default SiteSettingsPanel;

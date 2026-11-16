@@ -9,6 +9,7 @@
 cp .env.example .env   # заполнить
 npm install
 npm run dev            # https://localhost (порт 443, самоподписанный сертификат)
+npm run lint           # ESLint (+ правила хуков React); тот же шаг выполняется перед деплоем
 ```
 
 Порт 443 выбран потому, что в кабинете VK ID не сохраняется Redirect URL с портом. На macOS 443 доступен без root только при `host: true`, это уже прописано в `vite.config.ts`.
@@ -54,12 +55,15 @@ npm run dev            # https://localhost (порт 443, самоподписа
 
 ```
 src/auth/         вход: vk.ts (SDK VK ID), VkLoginButton, session (localStorage),
-                  useCurrentUser + logout, useIsAdmin, AdminGate, AuthRequired
+                  useCurrentUser + logout, useIsAdmin, AdminGate, AuthRequired, dbToken (JWT для базы)
+src/contests.ts   типы конкурсов и их подписи
 src/config.ts     адрес загрузки и срок приёма работ (из env)
-src/pages/        forms/, voting/, admin/, results/
+src/settings/     сроки и публикация итогов (таблица site_settings)
+src/components/   общие компоненты: contestForm/ (каркас и поля форм), fileRenderer, submissionInfo…
+src/pages/        home/, forms/, voting/, admin/, results/
 src/utils/uploadUtils.ts  загрузка: части по 8 МБ уходят напрямую в VK Cloud (3 параллельно),
                           с прогрессом, ретраями и отменой; Edge Function `uploads` только подписывает ссылки
-supabase/         SQL-миграция Telegram → VK (уже применена)
+supabase/         SQL-миграции (все применены)
 ```
 
 ## База данных
@@ -90,4 +94,4 @@ Supabase Auth не используется. После входа через VK
 ## Известные ограничения
 
 - **Загрузка файлов** работает, когда задеплоена Edge Function `uploads` и у бакета настроен CORS. Оба шага описаны в README cse-contests-api.
-- **Размер файла** проверяется только по заявленному браузером значению (см. README cse-contests-api).
+- **Размер и тип файла** задаёт сервер: каждая часть подписана с точным размером, Content-Type — по расширению (см. README cse-contests-api).

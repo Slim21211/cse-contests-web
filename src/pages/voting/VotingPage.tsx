@@ -6,7 +6,7 @@ import BrandHeader from '../../components/brandHeader/brandHeader';
 import Icon from '../../components/icon/Icon';
 import { useSiteSettings, votingStatus, formatDay } from '../../settings/siteSettings';
 import { formatAge } from '../../utils/age';
-import type { ContestType } from '../home/useHomeStats';
+import { CONTEST_TITLES as TITLES, type ContestType } from '../../contests';
 import type {
   ChildContestSubmission,
   TeamContestSubmission,
@@ -15,15 +15,9 @@ import type {
 import WorkCard from './WorkCard';
 import MediaViewer from './MediaViewer';
 import { useLikes } from './useLikes';
-import { kindOf } from './workKind';
+import { kindOf } from '../../utils/workKind';
 import type { Work } from './types';
 import s from './voting.module.scss';
-
-const TITLES: Record<ContestType, string> = {
-  child: 'Детский конкурс',
-  team: 'Командный конкурс',
-  individual: 'Индивидуальный конкурс',
-};
 
 type Row = ChildContestSubmission | TeamContestSubmission | IndividualContestSubmission;
 

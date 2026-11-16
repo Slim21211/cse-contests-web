@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { ContestType } from '../home/useHomeStats';
+import type { ContestType } from '../../contests';
 
 // Лайк = строка в таблице <contest>_votes (submission_id + vk_user_id).
 // Снять лайк = удалить строку. Колонка rating сохранена ради совместимости (всегда 1).
@@ -44,19 +44,18 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
   const liked = current ? state.liked : EMPTY;
   const loaded = current && state.loaded;
 
-  const apply = (id: string, on: boolean) =>
-    setState((prev) => {
-      if (prev.key !== key) return prev;
-      const next = new Set(prev.liked);
-      if (on) next.add(id);
-      else next.delete(id);
-      return { ...prev, liked: next };
-    });
-
   /** Поставить (on = true) или снять лайк. Интерфейс меняется сразу, при ошибке — откат. */
   const setLike = useCallback(
     async (id: string, on: boolean) => {
       if (!userId || !canVote || pending.current.has(id)) return;
+      const apply = (id: string, on: boolean) =>
+        setState((prev) => {
+          if (prev.key !== key) return prev;
+          const next = new Set(prev.liked);
+          if (on) next.add(id);
+          else next.delete(id);
+          return { ...prev, liked: next };
+        });
       pending.current.add(id);
       setError(null);
       apply(id, on);

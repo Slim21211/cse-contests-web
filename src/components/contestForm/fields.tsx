@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import s from './contestForm.module.scss';
 
-export const cx = (...names: (string | false | null | undefined)[]) =>
-  names.filter(Boolean).join(' ');
+import { cx } from '../../utils/cx';
 
 /** Группа полей с заголовком: «Сотрудник», «Ребёнок», «Работа». */
 export const Group = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -39,9 +38,3 @@ export const Field = ({ id, label, invalid, children }: FieldProps) => (
     {children}
   </div>
 );
-
-/** Классы формы и полей ввода — чтобы формы не импортировали стили напрямую. */
-export const formClass = s.form;
-export const inputClass = s.input;
-export const selectClass = cx(s.input, s.select);
-export const textareaClass = cx(s.input, s.textarea);

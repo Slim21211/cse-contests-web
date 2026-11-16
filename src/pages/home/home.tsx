@@ -9,7 +9,8 @@ import {
   formatDay,
 } from '../../settings/siteSettings';
 import { plural } from '../../utils/plural';
-import { useHomeStats, CONTESTS, type ContestType, type ContestStats } from './useHomeStats';
+import { useHomeStats, type ContestStats } from './useHomeStats';
+import { CONTESTS, type ContestType } from '../../contests';
 import styles from './home.module.scss';
 
 const CONTEST_INFO: Record<ContestType, { num: string; title: string; about: string }> = {

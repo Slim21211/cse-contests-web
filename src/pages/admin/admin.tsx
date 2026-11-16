@@ -2,26 +2,15 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useCurrentUser, useIsAdmin } from '../../auth';
-import type {
-  ChildContestSubmission,
-  TeamContestSubmission,
-  IndividualContestSubmission,
-} from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
+import SubmissionInfo, { type Submission } from '../../components/submissionInfo/SubmissionInfo';
+import { CONTESTS, CONTEST_TABS, type ContestType } from '../../contests';
+import { kindOf } from '../../utils/workKind';
 import Loader from '../../components/loader/loader';
 import SiteSettingsPanel from './SiteSettingsPanel';
-import { formatAge } from '../../utils/age';
 import { festiveYear } from '../../utils/festiveYear';
 import '../../styles/admin.scss';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
-
-type ContestType = 'child' | 'team' | 'individual';
-
-// Union type для всех типов работ
-type Submission =
-  | ChildContestSubmission
-  | TeamContestSubmission
-  | IndividualContestSubmission;
 
 const DEFAULT_ENABLED: Record<ContestType, boolean> = { child: true, team: true, individual: true };
 
@@ -159,76 +148,6 @@ const Admin = () => {
     }
   };
 
-  // Функция для рендера информации в зависимости от типа конкурса
-  const renderSubmissionInfo = (submission: Submission) => {
-    if (activeTab === 'child') {
-      const child = submission as ChildContestSubmission;
-      return (
-        <>
-          <h3>{child.title}</h3>
-          <p>
-            <strong>Ребёнок:</strong> {child.child_name}, {formatAge(child.child_age)}
-          </p>
-          <p>
-            <strong>Родитель:</strong> {child.full_name}
-          </p>
-          <p>
-            <strong>Подразделение:</strong> {child.department}
-          </p>
-          <p>
-            <strong>Город:</strong> {child.city}
-          </p>
-        </>
-      );
-    }
-
-    if (activeTab === 'team') {
-      const team = submission as TeamContestSubmission;
-      return (
-        <>
-          <h3>{team.team_name}</h3>
-          <p>
-            <strong>Участники:</strong> {team.participants}
-          </p>
-          <p>
-            <strong>Подразделение:</strong> {team.department}
-          </p>
-          <p>
-            <strong>Город:</strong> {team.city}
-          </p>
-        </>
-      );
-    }
-
-    if (activeTab === 'individual') {
-      const individual = submission as IndividualContestSubmission;
-      return (
-        <>
-          <h3>{individual.title}</h3>
-          <p>
-            <strong>Автор:</strong> {individual.full_name}
-          </p>
-          <p>
-            <strong>Подразделение:</strong> {individual.department}
-          </p>
-          <p>
-            <strong>Город:</strong> {individual.city}
-          </p>
-        </>
-      );
-    }
-
-    return null;
-  };
-
-  // Функция для проверки является ли файл изображением
-  const isImage = (url: string): boolean => {
-    const ext = (url.split('.').pop()?.split('?')[0] || '').toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'svg'].includes(
-      ext
-    );
-  };
-
   if (user && isAdmin === null) {
     return (
       <div className="admin-container">
@@ -252,12 +171,6 @@ const Admin = () => {
     );
   }
 
-  const tabLabels: Record<ContestType, string> = {
-    child: '🎄 Детский',
-    team: '✨ Командный',
-    individual: '⭐ Индивидуальный',
-  };
-
   return (
     <div className="admin-container">
       <Link to="/" className="back-link">
@@ -268,13 +181,13 @@ const Admin = () => {
         <h1>🛠 Админ-панель</h1>
 
         <div className="admin-tabs">
-          {(Object.keys(tabLabels) as ContestType[]).map((tab) => (
+          {CONTESTS.map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tabLabels[tab]}
+              {CONTEST_TABS[tab]}
             </button>
           ))}
         </div>
@@ -320,7 +233,7 @@ const Admin = () => {
               </div>
 
               <div className="admin-card-info">
-                {renderSubmissionInfo(submission)}
+                <SubmissionInfo contest={activeTab} work={submission} showDepartment />
 
                 <div className="admin-card-stats">
                   <span>
@@ -332,7 +245,7 @@ const Admin = () => {
               </div>
 
               <div className="admin-card-actions">
-                {isImage(submission.file_url) && (
+                {kindOf(submission.file_url) === 'image' && (
                   <button
                     className="rotate-button"
                     onClick={() =>

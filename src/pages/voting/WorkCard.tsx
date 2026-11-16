@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../../components/icon/Icon';
 import AudioPlayer from './AudioPlayer';
 import LikeButton from './LikeButton';
-import { extBadge, fileLabel } from './workKind';
+import { extBadge, fileLabel } from '../../utils/workKind';
 import type { Work } from './types';
 import s from './voting.module.scss';
 

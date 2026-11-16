@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import s from './voting.module.scss';
 
 interface Props {
@@ -76,14 +76,14 @@ const ZoomImage = ({ src, alt, rotation, onSwipeClose, onDrag }: Props) => {
   };
 
   // Колёсико мыши на десктопе (passive: false — чтобы не прокручивать страницу).
+  const onWheel = useEffectEvent((e: WheelEvent) => {
+    e.preventDefault();
+    const next = Math.min(MAX_SCALE, Math.max(1, view.current.scale * Math.exp(-e.deltaY / 300)));
+    zoomAt(local({ x: e.clientX, y: e.clientY }), next, false);
+  });
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const next = Math.min(MAX_SCALE, Math.max(1, view.current.scale * Math.exp(-e.deltaY / 300)));
-      zoomAt(local({ x: e.clientX, y: e.clientY }), next, false);
-    };
     box.addEventListener('wheel', onWheel, { passive: false });
     return () => box.removeEventListener('wheel', onWheel);
   }, []);

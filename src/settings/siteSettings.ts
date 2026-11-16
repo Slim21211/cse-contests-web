@@ -88,7 +88,7 @@ let request: Promise<SiteSettings> | null = null;
 let fetchedAt = 0;
 
 /** Загружает настройки (не чаще раза в REFRESH_MS) и возвращает их. */
-export const loadSiteSettings = (force = false) => {
+const loadSiteSettings = (force = false) => {
   if (request && !force && Date.now() - fetchedAt < REFRESH_MS) return request;
   fetchedAt = Date.now();
   request = (async () => {

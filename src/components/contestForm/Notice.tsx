@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { cx } from './fields';
+import { cx } from '../../utils/cx';
 import s from './contestForm.module.scss';
 
 /** Экран после отправки: форма скрыта, повторно ту же работу не отправить. */

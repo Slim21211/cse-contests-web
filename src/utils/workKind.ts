@@ -6,7 +6,7 @@ const IMAGE = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'svg', 'heic'
 const VIDEO = ['mp4', 'mov', 'webm', 'ogg', 'avi', 'mkv', 'm4v'];
 const AUDIO = ['mp3', 'wav', 'aac', 'oga', 'm4a'];
 
-export const extOf = (url: string) =>
+const extOf = (url: string) =>
   (url.split('?')[0].split('#')[0].split('.').pop() || '').toLowerCase();
 
 export const kindOf = (url: string): WorkKind => {

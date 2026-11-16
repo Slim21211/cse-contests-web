@@ -3,21 +3,13 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useCurrentUser, useIsAdmin, AuthRequired } from '../../auth';
 import { useSiteSettings } from '../../settings/siteSettings';
-import { formatAge } from '../../utils/age';
 import { plural } from '../../utils/plural';
-import type {
-  ChildContestSubmission,
-  TeamContestSubmission,
-  IndividualContestSubmission,
-} from '../../types/database';
 import FileRenderer from '../../components/fileRenderer/fileRenderer';
+import SubmissionInfo, { type Submission } from '../../components/submissionInfo/SubmissionInfo';
+import { CONTESTS, CONTEST_TABS, type ContestType } from '../../contests';
 import Loader from '../../components/loader/loader';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 import '../../styles/results.scss';
-
-type ContestType = 'child' | 'team' | 'individual';
-
-type Submission = ChildContestSubmission | TeamContestSubmission | IndividualContestSubmission;
 
 /** Строка get_results: место (одинаковое число лайков — одинаковое место), лайки, работа. */
 interface ResultRow {
@@ -33,12 +25,6 @@ const LIMITS: Record<ContestType, number | undefined> = {
   individual: undefined,
 };
 
-const TAB_LABELS: Record<ContestType, string> = {
-  child: '🎄 Детский',
-  team: '✨ Командный',
-  individual: '⭐ Индивидуальный',
-};
-
 /** Медаль за первое место, подарок за призовые, иначе номер. */
 const getPlaceBadge = (place: number, contest: ContestType): string => {
   if (place === 1) return '🥇';
@@ -46,56 +32,12 @@ const getPlaceBadge = (place: number, contest: ContestType): string => {
   return place <= lastPrize ? '🎁' : `#${place}`;
 };
 
-const SubmissionInfo = ({ contest, work }: { contest: ContestType; work: Submission }) => {
-  if (contest === 'child') {
-    const child = work as ChildContestSubmission;
-    return (
-      <>
-        <h3>{child.title}</h3>
-        <p>
-          <strong>Автор:</strong> {child.child_name}, {formatAge(child.child_age)}
-        </p>
-        <p>
-          <strong>Родитель:</strong> {child.full_name}
-        </p>
-        <p>
-          <strong>Город:</strong> {child.city}
-        </p>
-      </>
-    );
-  }
-  if (contest === 'team') {
-    const team = work as TeamContestSubmission;
-    return (
-      <>
-        <h3>{team.team_name}</h3>
-        <p>
-          <strong>Участники:</strong> {team.participants}
-        </p>
-        <p>
-          <strong>Город:</strong> {team.city}
-        </p>
-      </>
-    );
-  }
-  const individual = work as IndividualContestSubmission;
-  return (
-    <>
-      <h3>{individual.title}</h3>
-      <p>
-        <strong>Автор:</strong> {individual.full_name}
-      </p>
-      <p>
-        <strong>Город:</strong> {individual.city}
-      </p>
-    </>
-  );
-};
-
 const Results = () => {
   const [activeTab, setActiveTab] = useState<ContestType>('child');
-  const [results, setResults] = useState<ResultRow[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  // Итоги вместе с вкладкой, к которой относятся: при смене вкладки старые не показываем.
+  const [loaded, setLoaded] = useState<{ tab: ContestType; rows: ResultRow[]; error: boolean } | null>(
+    null
+  );
   const { user } = useCurrentUser();
   const isAdmin = useIsAdmin(user);
   const { settings, loaded: settingsLoaded } = useSiteSettings();
@@ -106,24 +48,24 @@ const Results = () => {
   useEffect(() => {
     if (!canView) return;
     let cancelled = false;
-    setResults(null);
-    setLoadError(false);
     supabase.rpc('get_results', { p_contest: activeTab }).then(({ data, error }) => {
       if (cancelled) return;
-      if (error) {
-        console.error('Итоги не загрузились:', error);
-        setLoadError(true);
-        setResults([]);
-        return;
-      }
+      if (error) console.error('Итоги не загрузились:', error);
       const rows = (data ?? []) as ResultRow[];
       const limit = LIMITS[activeTab];
-      setResults(limit ? rows.filter((r) => r.place <= limit) : rows);
+      setLoaded({
+        tab: activeTab,
+        rows: limit ? rows.filter((r) => r.place <= limit) : rows,
+        error: !!error,
+      });
     });
     return () => {
       cancelled = true;
     };
   }, [activeTab, canView]);
+
+  const results = loaded?.tab === activeTab ? loaded.rows : null;
+  const loadError = loaded?.tab === activeTab && loaded.error;
 
   if (!user) {
     return <AuthRequired showBackLink message="Войдите, чтобы посмотреть итоги." />;
@@ -161,13 +103,13 @@ const Results = () => {
         <p className="subtitle">Победители новогодних конкурсов</p>
 
         <div className="results-tabs">
-          {(Object.keys(TAB_LABELS) as ContestType[]).map((tab) => (
+          {CONTESTS.map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
-              {TAB_LABELS[tab]}
+              {CONTEST_TABS[tab]}
             </button>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import type { WorkKind } from './workKind';
+import type { WorkKind } from '../../utils/workKind';
 
 /** Работа в ленте голосования — общий вид для всех трёх конкурсов. */
 export interface Work {

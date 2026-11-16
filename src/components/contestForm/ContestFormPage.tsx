@@ -9,14 +9,8 @@ import {
   formatDay,
 } from '../../settings/siteSettings';
 import { plural } from '../../utils/plural';
-import type { ContestType } from '../../utils/uploadUtils';
+import { CONTEST_TITLES as TITLES, type ContestType } from '../../contests';
 import s from './contestForm.module.scss';
-
-const TITLES: Record<ContestType, string> = {
-  child: 'Детский конкурс',
-  team: 'Командный конкурс',
-  individual: 'Индивидуальный конкурс',
-};
 
 /** Сколько активных работ пользователь уже подал в этот конкурс. */
 const useMyCount = (

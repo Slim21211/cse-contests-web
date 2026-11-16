@@ -5,14 +5,8 @@ import ContestFormPage from '../../components/contestForm/ContestFormPage';
 import FileDrop from '../../components/contestForm/FileDrop';
 import SubmitArea from '../../components/contestForm/SubmitArea';
 import { SubmissionClosed, SubmissionSuccess } from '../../components/contestForm/Notice';
-import {
-  Field,
-  Group,
-  Row,
-  formClass,
-  inputClass,
-  selectClass,
-} from '../../components/contestForm/fields';
+import { Field, Group, Row } from '../../components/contestForm/fields';
+import { formClass, inputClass, selectClass } from '../../components/contestForm/formClasses';
 import { useSubmitWork } from '../../components/contestForm/useSubmitWork';
 import { readFormMemory, saveFormMemory } from '../../components/contestForm/formMemory';
 import { focusFirst } from '../../components/contestForm/focusFirst';

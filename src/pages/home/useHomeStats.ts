@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-export type ContestType = 'child' | 'team' | 'individual';
-export const CONTESTS: ContestType[] = ['child', 'team', 'individual'];
+import { CONTESTS, type ContestType } from '../../contests';
 
 export interface ContestStats {
   /** Активных работ в конкурсе. */

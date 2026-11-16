@@ -1,4 +1,4 @@
-import { formatSize } from './FileDrop';
+import { formatSize } from '../../utils/formatSize';
 import s from './contestForm.module.scss';
 
 interface Props {

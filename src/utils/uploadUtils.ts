@@ -10,7 +10,9 @@ import { createVideoPoster, isVideoFile } from './videoPoster';
 //   3. POST /uploads/complete — бэкенд собирает файл и возвращает публичную ссылку.
 // Через бэкенд идут только маленькие JSON-запросы, сам файл — нет.
 
-export type ContestType = 'child' | 'team' | 'individual';
+import type { ContestType } from '../contests';
+
+export type { ContestType };
 
 const CONCURRENCY = 3;
 const MAX_RETRIES = 10;
@@ -146,7 +148,7 @@ const putPart = (url: string, blob: Blob, onBytes: (loaded: number) => void) =>
     xhr.send(blob);
   });
 
-export const uploadFileMultipart = async (
+const uploadFileMultipart = async (
   file: File,
   contest: ContestType,
   callbacks: UploadCallbacks
