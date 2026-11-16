@@ -13,6 +13,9 @@ import styles from './siteSettingsPanel.module.scss';
  * фоновое обновление настроек не затирает то, что админ сейчас вводит.
  */
 const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: boolean }) => {
+  const [submissionStart, setSubmissionStart] = useState(() =>
+    toMoscowInput(initial.submissionStart),
+  );
   const [submission, setSubmission] = useState(() => toMoscowInput(initial.submissionDeadline));
   const [votingStart, setVotingStart] = useState(() => toMoscowInput(initial.votingStart));
   const [votingEnd, setVotingEnd] = useState(() => toMoscowInput(initial.votingEnd));
@@ -22,8 +25,14 @@ const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: bool
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const subStart = fromMoscowInput(submissionStart);
+    const subEnd = fromMoscowInput(submission);
     const start = fromMoscowInput(votingStart);
     const end = fromMoscowInput(votingEnd);
+    if (subStart && subEnd && subStart >= subEnd) {
+      setStatus({ ok: false, text: 'Начало приёма должно быть раньше окончания' });
+      return;
+    }
     if (start && end && start >= end) {
       setStatus({ ok: false, text: 'Начало голосования должно быть раньше окончания' });
       return;
@@ -31,7 +40,8 @@ const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: bool
     setSaving(true);
     setStatus(null);
     const error = await saveSiteSettings({
-      submissionDeadline: fromMoscowInput(submission),
+      submissionStart: subStart,
+      submissionDeadline: subEnd,
       votingStart: start,
       votingEnd: end,
       resultsPublished: published,
@@ -49,6 +59,16 @@ const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: bool
       <h2 className={styles.title}>Сроки и итоги</h2>
 
       <div className={styles.fields}>
+        <label className={styles.field}>
+          <span className={styles.label}>Приём работ с</span>
+          <input
+            type="datetime-local"
+            value={submissionStart}
+            onChange={(e) => setSubmissionStart(e.target.value)}
+            className={styles.input}
+          />
+        </label>
+
         <label className={styles.field}>
           <span className={styles.label}>Приём работ до</span>
           <input
@@ -94,8 +114,9 @@ const SettingsForm = ({ initial, loaded }: { initial: SiteSettings; loaded: bool
 
       <div className={styles.footer}>
         <span className={styles.hint}>
-          Время московское, пустое поле — без ограничения. Между датами голосование идёт, если оно
-          включено для конкурса переключателем ниже; иначе — «приостановлено».
+          Время московское, пустое поле — без ограничения. Вне сроков приёма подавать работы могут
+          только админы. Голосование между датами идёт, если оно включено для конкурса
+          переключателем ниже; иначе — «приостановлено».
         </span>
         {status && (
           <span className={status.ok ? styles.ok : styles.error} role="status">

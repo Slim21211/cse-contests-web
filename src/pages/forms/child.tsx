@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useCurrentUser, AuthRequired, useEnsureVkSession } from '../../auth';
-import { useSiteSettings, isSubmissionClosed } from '../../settings/siteSettings';
 import ContestFormPage from '../../components/contestForm/ContestFormPage';
 import FileDrop from '../../components/contestForm/FileDrop';
 import SubmitArea from '../../components/contestForm/SubmitArea';
-import { SubmissionClosed, SubmissionSuccess } from '../../components/contestForm/Notice';
+import { SubmissionSuccess } from '../../components/contestForm/Notice';
+import { useSubmissionGate } from '../../components/contestForm/useSubmissionGate';
 import { Field, Group, Row } from '../../components/contestForm/fields';
 import { formClass, inputClass, selectClass } from '../../components/contestForm/formClasses';
 import { useSubmitWork } from '../../components/contestForm/useSubmitWork';
@@ -15,8 +15,8 @@ import { AGE_OPTIONS } from '../../utils/age';
 const Child = () => {
   const { user } = useCurrentUser();
   useEnsureVkSession(user); // продлеваем вход через VK сразу, а не в момент отправки
-  const { settings } = useSiteSettings();
   const work = useSubmitWork('child', user?.id);
+  const gate = useSubmissionGate('child', user, work);
 
   const [memory] = useState(readFormMemory);
   const [fullName, setFullName] = useState(memory.fullName ?? '');
@@ -29,14 +29,7 @@ const Child = () => {
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState(0);
 
-  // Срок вышел, пока работа грузилась, — даём досмотреть результат отправки.
-  if (isSubmissionClosed(settings) && !work.loading && !work.success) {
-    return (
-      <ContestFormPage contest="child">
-        <SubmissionClosed />
-      </ContestFormPage>
-    );
-  }
+  if (gate) return gate;
 
   // Загрузка файла проверяет VK-токен на сервере — без входа форму не показываем.
   if (!user) {

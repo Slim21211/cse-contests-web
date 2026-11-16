@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 // из VITE_SUBMISSION_DEADLINE, как раньше.
 
 export interface SiteSettings {
+  submissionStart: Date | null;
   submissionDeadline: Date | null;
   votingStart: Date | null;
   votingEnd: Date | null;
@@ -13,6 +14,7 @@ export interface SiteSettings {
 }
 
 interface Row {
+  submission_start: string | null;
   submission_deadline: string | null;
   voting_start: string | null;
   voting_deadline: string | null;
@@ -35,6 +37,7 @@ const readStored = (): SiteSettings | null => {
     if (!raw) return null;
     const v = JSON.parse(raw);
     return {
+      submissionStart: toDate(v.submissionStart),
       submissionDeadline: toDate(v.submissionDeadline) ?? envDeadline,
       votingStart: toDate(v.votingStart),
       votingEnd: toDate(v.votingEnd),
@@ -57,6 +60,7 @@ const stored = readStored();
 
 let state: { settings: SiteSettings; loaded: boolean } = {
   settings: stored ?? {
+    submissionStart: null,
     submissionDeadline: envDeadline,
     votingStart: null,
     votingEnd: null,
@@ -75,6 +79,7 @@ const emit = (settings: SiteSettings) => {
 };
 
 const fromRow = (row: Row | null): SiteSettings => ({
+  submissionStart: toDate(row?.submission_start),
   submissionDeadline: toDate(row?.submission_deadline) ?? envDeadline,
   votingStart: toDate(row?.voting_start),
   votingEnd: toDate(row?.voting_deadline),
@@ -94,7 +99,7 @@ const loadSiteSettings = (force = false) => {
   request = (async () => {
     const { data, error } = await supabase
       .from('site_settings')
-      .select('submission_deadline, voting_start, voting_deadline, results_published')
+      .select('submission_start, submission_deadline, voting_start, voting_deadline, results_published')
       .eq('id', 1)
       .maybeSingle();
     if (error) {
@@ -121,7 +126,7 @@ if (typeof document !== 'undefined') {
 
 /** Ближайший из сроков (приём, начало и конец голосования), который ещё не наступил. */
 const nextBoundary = (s: SiteSettings, now: number) =>
-  [s.submissionDeadline, s.votingStart, s.votingEnd]
+  [s.submissionStart, s.submissionDeadline, s.votingStart, s.votingEnd]
     .map((d) => d?.getTime() ?? NaN)
     .filter((t) => t > now)
     .reduce((a, b) => Math.min(a, b), Infinity);
@@ -161,6 +166,7 @@ export const useSiteSettings = () => {
 export const saveSiteSettings = async (next: SiteSettings): Promise<string | null> => {
   const { error } = await supabase.from('site_settings').upsert({
     id: 1,
+    submission_start: next.submissionStart?.toISOString() ?? null,
     submission_deadline: next.submissionDeadline?.toISOString() ?? null,
     voting_start: next.votingStart?.toISOString() ?? null,
     voting_deadline: next.votingEnd?.toISOString() ?? null,
@@ -175,8 +181,19 @@ export const saveSiteSettings = async (next: SiteSettings): Promise<string | nul
   return null;
 };
 
-export const isSubmissionClosed = (s: SiteSettings, now = new Date()) =>
-  s.submissionDeadline !== null && now >= s.submissionDeadline;
+/**
+ * Состояние приёма работ:
+ *  upcoming — ещё не наступила дата начала;
+ *  open     — приём идёт;
+ *  closed   — срок прошёл.
+ */
+export type SubmissionStatus = 'upcoming' | 'open' | 'closed';
+
+export const submissionStatus = (s: SiteSettings, now = new Date()): SubmissionStatus => {
+  if (s.submissionStart && now < s.submissionStart) return 'upcoming';
+  if (s.submissionDeadline && now >= s.submissionDeadline) return 'closed';
+  return 'open';
+};
 
 /**
  * Состояние голосования по конкурсу:
@@ -191,6 +208,30 @@ export const votingStatus = (s: SiteSettings, enabled: boolean, now = new Date()
   if (s.votingStart && now < s.votingStart) return 'upcoming';
   if (s.votingEnd && now >= s.votingEnd) return 'closed';
   return enabled ? 'open' : 'paused';
+};
+
+/**
+ * Срок приёма одной строкой после «Приём работ»: «с 1 декабря», «до 15 декабря»,
+ * «завершён 15 декабря». null — сроков нет.
+ */
+export const submissionDates = (s: SiteSettings, now = new Date()) => {
+  const status = submissionStatus(s, now);
+  if (status === 'upcoming' && s.submissionStart) {
+    return {
+      status,
+      text: s.submissionDeadline
+        ? `с ${formatDay(s.submissionStart)} до ${formatDay(s.submissionDeadline)}`
+        : `с ${formatDay(s.submissionStart)}`,
+    };
+  }
+  if (!s.submissionDeadline) return null;
+  return {
+    status,
+    text:
+      status === 'closed'
+        ? `завершён ${formatDay(s.submissionDeadline)}`
+        : `до ${formatDay(s.submissionDeadline)}`,
+  };
 };
 
 /** «15 декабря» по московскому времени. */

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import VkLoginButton from './VkLoginButton';
 import Icon from '../components/icon/Icon';
-import { useSiteSettings, isSubmissionClosed, formatDay } from '../settings/siteSettings';
+import { useSiteSettings, submissionDates } from '../settings/siteSettings';
 import { festiveYear } from '../utils/festiveYear';
 import styles from './authRequired.module.scss';
 
@@ -32,7 +32,7 @@ const Logo = () => {
 /** Страница входа: оранжевая шапка с названием, ниже — описание, срок приёма работ и кнопка VK ID. */
 const AuthRequired = ({ message, showBackLink }: Props) => {
   const { settings } = useSiteSettings();
-  const deadline = settings.submissionDeadline;
+  const dates = submissionDates(settings);
 
   return (
   <main className={styles.page}>
@@ -61,12 +61,10 @@ const AuthRequired = ({ message, showBackLink }: Props) => {
           <b>индивидуальный</b> конкурсы и голосуют за лучшие.
         </p>
 
-        {deadline && (
+        {dates && (
           <div className={styles.deadline}>
             <span className={styles.deadlineLabel}>Приём работ</span>
-            <span className={styles.deadlineValue}>
-              {isSubmissionClosed(settings) ? 'завершён' : `до ${formatDay(deadline)}`}
-            </span>
+            <span className={styles.deadlineValue}>{dates.text}</span>
           </div>
         )}
 

@@ -1,42 +1,59 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useCurrentUser, useIsAdmin } from '../../auth';
-import FileRenderer from '../../components/fileRenderer/fileRenderer';
-import SubmissionInfo, { type Submission } from '../../components/submissionInfo/SubmissionInfo';
-import { CONTESTS, CONTEST_TABS, type ContestType } from '../../contests';
-import { kindOf } from '../../utils/workKind';
+import { useCurrentUser, useIsAdmin, AuthRequired } from '../../auth';
+import PageLayout, { PageNotice } from '../../components/pageLayout/PageLayout';
+import ContestTabs from '../../components/contestTabs/ContestTabs';
 import Loader from '../../components/loader/loader';
+import WorkCard from '../voting/WorkCard';
+import MediaViewer from '../voting/MediaViewer';
+import { toWork, type Row } from '../voting/toWork';
 import SiteSettingsPanel from './SiteSettingsPanel';
+import ConfirmDialog from './ConfirmDialog';
 import { festiveYear } from '../../utils/festiveYear';
-import '../../styles/admin.scss';
-import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
+import { cx } from '../../utils/cx';
+import type { ContestType } from '../../contests';
+import type { ChildContestSubmission, TeamContestSubmission } from '../../types/database';
+import v from '../voting/voting.module.scss';
+import a from './admin.module.scss';
 
 const DEFAULT_ENABLED: Record<ContestType, boolean> = { child: true, team: true, individual: true };
+
+const noop = () => {};
+
+/** Подробности, которые видят только админы. */
+const Details = ({ contest, row }: { contest: ContestType; row: Row }) => {
+  const lines: [string, string | undefined][] = [['Подразделение', row.department]];
+  if (contest === 'child') lines.push(['Родитель', (row as ChildContestSubmission).full_name]);
+  if (contest === 'team') lines.push(['Участники', (row as TeamContestSubmission).participants]);
+  if (contest !== 'team') lines.push(['Город', row.city]);
+  lines.push(['Подана', new Date(row.created_at).toLocaleDateString('ru-RU')]);
+  return (
+    <dl className={a.details}>
+      {lines.map(([label, value]) => (
+        <div key={label} className={a.detail}>
+          <dt>{label}</dt>
+          <dd>{value || '—'}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+};
 
 const Admin = () => {
   const { user } = useCurrentUser();
   const isAdmin = useIsAdmin(user);
-  const [activeTab, setActiveTab] = useState<ContestType>('child');
-  // Работы вместе с вкладкой, к которой они относятся: пока грузится новая вкладка,
-  // старый список не показываем и не правим.
-  const [loaded, setLoaded] = useState<{ tab: ContestType; works: Submission[] | null } | null>(
-    null
-  );
+  const [contest, setContest] = useState<ContestType>('child');
+  // Работы вместе с конкурсом, к которому относятся: пока грузится новый, старый список не показываем.
+  const [loaded, setLoaded] = useState<{ contest: ContestType; works: Row[] | null } | null>(null);
   const [votingEnabled, setVotingEnabled] = useState(DEFAULT_ENABLED);
-  const [deleteModal, setDeleteModal] = useState<{
-    show: boolean;
-    id: string | null;
-  }>({
-    show: false,
-    id: null,
-  });
+  const [toHide, setToHide] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const submissions = loaded?.tab === activeTab ? loaded.works : undefined;
-  const setSubmissions = (update: (prev: Submission[]) => Submission[]) =>
+  const works = loaded?.contest === contest ? loaded.works : undefined;
+  const setWorks = (update: (prev: Row[]) => Row[]) =>
     setLoaded((prev) => (prev?.works ? { ...prev, works: update(prev.works) } : prev));
 
-  // Настройки голосования — один раз.
+  // Флаги голосования — один раз.
   useEffect(() => {
     if (!isAdmin) return;
     let cancelled = false;
@@ -50,8 +67,8 @@ const Admin = () => {
           return;
         }
         const enabled = { ...DEFAULT_ENABLED };
-        data.forEach((s) => {
-          enabled[s.contest_type as ContestType] = s.voting_enabled;
+        data.forEach((row) => {
+          enabled[row.contest_type as ContestType] = row.voting_enabled;
         });
         setVotingEnabled(enabled);
       });
@@ -60,29 +77,31 @@ const Admin = () => {
     };
   }, [isAdmin]);
 
-  // Работы текущей вкладки, только текущий сезон; прошлые остаются в базе.
+  // Работы конкурса, только текущий сезон; прошлые остаются в базе.
   useEffect(() => {
     if (!isAdmin) return;
     let cancelled = false;
     supabase
-      .from(`${activeTab}_contest`)
+      .from(`${contest}_contest`)
       .select('*')
       .eq('season', festiveYear())
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error('Работы не загрузились:', error);
-        setLoaded({ tab: activeTab, works: error ? null : ((data ?? []) as Submission[]) });
+        setLoaded({ contest, works: error ? null : ((data ?? []) as Row[]) });
       });
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, contest]);
+
+  const closeViewer = useCallback(() => setOpenId(null), []);
 
   /** Обновляет работу; база может молча не тронуть строку (RLS) — это тоже ошибка. */
   const updateWork = async (id: string, patch: Record<string, unknown>, what: string) => {
     const { data, error } = await supabase
-      .from(`${activeTab}_contest`)
+      .from(`${contest}_contest`)
       .update(patch)
       .eq('id', id)
       .select('id');
@@ -91,218 +110,190 @@ const Admin = () => {
       alert(`Не удалось ${what}. ${error?.message ?? 'Нет прав или работа не найдена.'}`);
       return false;
     }
+    setWorks((prev) => prev.map((w) => (w.id === id ? { ...w, ...patch } : w)));
     return true;
   };
 
   const toggleVoting = async () => {
-    const contest = activeTab;
-    const newValue = !votingEnabled[contest];
-
+    const target = contest;
+    const newValue = !votingEnabled[target];
     const { data, error } = await supabase
       .from('contest_settings')
-      .update({
-        voting_enabled: newValue,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('contest_type', contest)
+      .update({ voting_enabled: newValue, updated_at: new Date().toISOString() })
+      .eq('contest_type', target)
       .select('contest_type');
-
     if (error || !data?.length) {
       console.error('Ошибка переключения голосования:', error);
       alert(
         'Не удалось переключить голосование. ' +
-          (error?.message ?? 'В contest_settings нет строки для этого конкурса.')
+          (error?.message ?? 'В contest_settings нет строки для этого конкурса.'),
       );
       return;
     }
-    setVotingEnabled((prev) => ({ ...prev, [contest]: newValue }));
+    setVotingEnabled((prev) => ({ ...prev, [target]: newValue }));
   };
 
-  const handleDelete = async () => {
-    const id = deleteModal.id;
-    setDeleteModal({ show: false, id: null });
+  const hide = async () => {
+    const id = toHide;
+    setToHide(null);
     if (!id || !user) return;
-
-    const ok = await updateWork(
+    await updateWork(
       id,
       { is_active: false, moderated_at: new Date().toISOString(), moderated_by: user.id },
-      'скрыть работу'
+      'скрыть работу',
     );
-    if (ok) {
-      setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: false } : s)));
-    }
   };
 
-  const handleRestore = async (id: string) => {
-    if (await updateWork(id, { is_active: true }, 'восстановить работу')) {
-      setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: true } : s)));
-    }
-  };
+  if (!user) return <AuthRequired showBackLink />;
 
-  const rotateImage = async (id: string, currentRotation: number = 0) => {
-    const newRotation = (currentRotation + 90) % 360; // Поворачиваем на 90°
-    if (await updateWork(id, { rotation: newRotation }, 'повернуть изображение')) {
-      setSubmissions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, rotation: newRotation } : s))
-      );
-    }
-  };
-
-  if (user && isAdmin === null) {
-    return (
-      <div className="admin-container">
-        <Loader label="Проверяем доступ…" />
-      </div>
+  let content;
+  if (isAdmin === null) {
+    content = <Loader label="Проверяем доступ…" />;
+  } else if (!isAdmin) {
+    content = (
+      <PageNotice
+        title="Нет доступа"
+        text="Эта страница — для организаторов конкурса."
+        action={{ to: '/', label: 'На главную' }}
+      />
     );
-  }
+  } else {
+    const hidden = works?.filter((w) => !w.is_active).length ?? 0;
+    const openRow = works?.find((w) => w.id === openId);
+    content = (
+      <>
+        <SiteSettingsPanel />
 
-  if (!user || !isAdmin) {
-    return (
-      <div className="admin-container">
-        <Link to="/" className="back-link">
-          ← На главную
-        </Link>
-        <div className="no-access">
-          <div className="icon">🔐</div>
-          <h2>Доступ запрещён</h2>
-          <p>У вас нет прав администратора.</p>
-        </div>
-      </div>
+        <section className={a.works} aria-labelledby="works-title">
+          <div className={a.worksHead}>
+            <h2 id="works-title" className={a.h2}>
+              Работы
+            </h2>
+            <ContestTabs
+              value={contest}
+              onChange={(c) => {
+                setContest(c);
+                setOpenId(null);
+              }}
+            />
+          </div>
+
+          <div className={a.toolbar}>
+            <span className={a.count}>
+              {works
+                ? `Всего: ${works.length}${hidden ? ` · скрыто: ${hidden}` : ''}`
+                : 'Загрузка…'}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={votingEnabled[contest]}
+              className={a.switch}
+              onClick={toggleVoting}
+            >
+              <span className={a.switchLabel}>Голосование в конкурсе</span>
+              <span className={cx(a.switchTrack, votingEnabled[contest] && a.switchOn)}>
+                <span className={a.switchThumb} />
+              </span>
+            </button>
+          </div>
+
+          {works === undefined ? (
+            <Loader label="Загрузка работ…" />
+          ) : works === null ? (
+            <PageNotice title="Не удалось загрузить работы" text="Обновите страницу." />
+          ) : works.length === 0 ? (
+            <PageNotice title="Пока нет работ" text="Здесь появятся работы этого сезона." />
+          ) : (
+            <div className={v.grid}>
+              {works.map((row) => {
+                const work = toWork(contest, row);
+                return (
+                  <WorkCard
+                    key={row.id}
+                    work={work}
+                    liked={false}
+                    canVote={false}
+                    onLike={noop}
+                    onOpen={() => setOpenId(row.id)}
+                    dimmed={!row.is_active}
+                    badge={!row.is_active && <span className={a.hiddenBadge}>Скрыта</span>}
+                    aside={null}
+                    footer={
+                      <div className={a.cardFooter}>
+                        <Details contest={contest} row={row} />
+                        <div className={a.actions}>
+                          {work.kind === 'image' && (
+                            <button
+                              type="button"
+                              className={a.action}
+                              onClick={() =>
+                                updateWork(
+                                  row.id,
+                                  { rotation: ((row.rotation ?? 0) + 90) % 360 },
+                                  'повернуть изображение',
+                                )
+                              }
+                            >
+                              Повернуть
+                            </button>
+                          )}
+                          {row.is_active ? (
+                            <button
+                              type="button"
+                              className={cx(a.action, a.actionDanger)}
+                              onClick={() => setToHide(row.id)}
+                            >
+                              Скрыть
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={a.action}
+                              onClick={() =>
+                                updateWork(row.id, { is_active: true }, 'вернуть работу')
+                              }
+                            >
+                              Вернуть в голосование
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {openRow && (
+          <MediaViewer
+            work={toWork(contest, openRow)}
+            liked={false}
+            canVote={false}
+            onLike={noop}
+            onClose={closeViewer}
+          />
+        )}
+
+        {toHide && (
+          <ConfirmDialog
+            title="Скрыть работу?"
+            text="Она пропадёт из голосования и итогов. Вернуть можно в любой момент."
+            confirmLabel="Скрыть"
+            onConfirm={hide}
+            onCancel={() => setToHide(null)}
+          />
+        )}
+      </>
     );
   }
 
   return (
-    <div className="admin-container">
-      <Link to="/" className="back-link">
-        ← На главную
-      </Link>
-
-      <div className="admin-header">
-        <h1>🛠 Админ-панель</h1>
-
-        <div className="admin-tabs">
-          {CONTESTS.map((tab) => (
-            <button
-              key={tab}
-              className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {CONTEST_TABS[tab]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <SiteSettingsPanel />
-
-      <div className="admin-controls">
-        <div className="voting-toggle">
-          <span>Голосование:</span>
-          <button
-            className={`toggle-button ${
-              votingEnabled[activeTab] ? 'enabled' : 'disabled'
-            }`}
-            onClick={toggleVoting}
-          >
-            {votingEnabled[activeTab] ? '✓ Включено' : '✗ Выключено'}
-          </button>
-        </div>
-        {submissions && <span>Всего работ: {submissions.length}</span>}
-      </div>
-
-      {submissions === undefined ? (
-        <Loader label="Загрузка работ…" />
-      ) : submissions === null ? (
-        <div className="no-access">
-          <p>Не удалось загрузить работы. Обновите страницу.</p>
-        </div>
-      ) : (
-        <div className="admin-grid">
-          {submissions.map((submission) => (
-            <div
-              key={submission.id}
-              className="admin-card"
-              style={{ opacity: submission.is_active ? 1 : 0.5 }}
-            >
-              <div className="admin-card-media">
-                <FileRenderer
-                  filePath={submission.file_url}
-                  rotation={submission.rotation || 0}
-                  posterUrl={submission.poster_url}
-                />
-              </div>
-
-              <div className="admin-card-info">
-                <SubmissionInfo contest={activeTab} work={submission} showDepartment />
-
-                <div className="admin-card-stats">
-                  <span>
-                    📅{' '}
-                    {new Date(submission.created_at).toLocaleDateString('ru')}
-                  </span>
-                  <span>{submission.is_active ? '✓ Активна' : '✗ Скрыта'}</span>
-                </div>
-              </div>
-
-              <div className="admin-card-actions">
-                {kindOf(submission.file_url) === 'image' && (
-                  <button
-                    className="rotate-button"
-                    onClick={() =>
-                      rotateImage(submission.id, submission.rotation || 0)
-                    }
-                    title="Повернуть на 90°"
-                  >
-                    ↻ Повернуть
-                  </button>
-                )}
-                {submission.is_active ? (
-                  <button
-                    className="delete-button"
-                    onClick={() =>
-                      setDeleteModal({ show: true, id: submission.id })
-                    }
-                  >
-                    🗑 Скрыть
-                  </button>
-                ) : (
-                  <button
-                    className="restore-button"
-                    onClick={() => handleRestore(submission.id)}
-                  >
-                    ↩ Восстановить
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <ScrollToTopButton />
-
-      {deleteModal.show && (
-        <div className="confirm-modal">
-          <div className="confirm-modal-content">
-            <h3>Скрыть работу?</h3>
-            <p>
-              Работа будет скрыта из голосования. Вы сможете восстановить её
-              позже.
-            </p>
-            <div className="confirm-modal-actions">
-              <button
-                className="cancel-button"
-                onClick={() => setDeleteModal({ show: false, id: null })}
-              >
-                Отмена
-              </button>
-              <button className="confirm-delete-button" onClick={handleDelete}>
-                Скрыть
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <PageLayout title="Админ-панель" subtitle={`Сезон ${festiveYear()}`}>
+      {content}
+    </PageLayout>
   );
 };
 

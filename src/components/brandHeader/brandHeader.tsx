@@ -10,6 +10,8 @@ interface Props {
   subtitle?: ReactNode;
   /** Ссылки и кнопки справа от логотипа. */
   actions?: ReactNode;
+  /** Контурный год на фоне; по умолчанию — текущий сезон. */
+  year?: number;
 }
 
 const Logo = () => {
@@ -26,10 +28,10 @@ const Logo = () => {
 };
 
 /** Оранжевая шапка страниц сайта: логотип, действия, приветствие, заголовок и контурный год. */
-const BrandHeader = ({ title, greeting, subtitle, actions }: Props) => (
+const BrandHeader = ({ title, greeting, subtitle, actions, year }: Props) => (
   <header className={styles.header}>
     <span className={styles.year} aria-hidden="true">
-      {festiveYear()}
+      {year ?? festiveYear()}
     </span>
     <div className={styles.inner}>
       <div className={styles.top}>

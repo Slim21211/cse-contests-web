@@ -1,47 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useCurrentUser, AuthRequired } from '../../auth';
-import BrandHeader from '../../components/brandHeader/brandHeader';
+import PageLayout, { PageNotice } from '../../components/pageLayout/PageLayout';
 import Icon from '../../components/icon/Icon';
 import { useSiteSettings, votingStatus, formatDay } from '../../settings/siteSettings';
-import { formatAge } from '../../utils/age';
 import { CONTEST_TITLES as TITLES, type ContestType } from '../../contests';
-import type {
-  ChildContestSubmission,
-  TeamContestSubmission,
-  IndividualContestSubmission,
-} from '../../types/database';
 import WorkCard from './WorkCard';
 import MediaViewer from './MediaViewer';
 import { useLikes } from './useLikes';
-import { kindOf } from '../../utils/workKind';
-import type { Work } from './types';
+import { toWork, type Row } from './toWork';
 import s from './voting.module.scss';
-
-type Row = ChildContestSubmission | TeamContestSubmission | IndividualContestSubmission;
-
-/** Подписи карточки для каждого конкурса. */
-const toWork = (contest: ContestType, row: Row): Work => {
-  const base = {
-    id: row.id,
-    url: row.file_url,
-    posterUrl: row.poster_url,
-    rotation: row.rotation ?? 0,
-    kind: kindOf(row.file_url),
-    isMine: row.is_mine === true,
-  };
-  if (contest === 'child') {
-    const r = row as ChildContestSubmission;
-    return { ...base, title: r.title, subtitle: `${r.child_name}, ${formatAge(r.child_age)}` };
-  }
-  if (contest === 'team') {
-    const r = row as TeamContestSubmission;
-    return { ...base, title: r.team_name, subtitle: r.city };
-  }
-  const r = row as IndividualContestSubmission;
-  return { ...base, title: r.title, subtitle: [r.full_name, r.city].filter(Boolean).join(' · ') };
-};
 
 /**
  * Порядок работ перемешан, но стабилен в пределах сессии: после возврата со страницы
@@ -66,7 +34,6 @@ const hash = (str: string) => {
   return h >>> 0;
 };
 
-/** Каркас: шапка и белый лист — как у остальных страниц. */
 const Layout = ({
   contest,
   subtitle,
@@ -76,19 +43,9 @@ const Layout = ({
   subtitle?: string;
   children: ReactNode;
 }) => (
-  <div className={s.page}>
-    <BrandHeader
-      title={TITLES[contest]}
-      subtitle={subtitle}
-      actions={
-        <Link to="/?tab=vote" className={s.back}>
-          <Icon name="chevron-left" size={18} className={s.backChevron} />
-          На главную
-        </Link>
-      }
-    />
-    <main className={s.sheet}>{children}</main>
-  </div>
+  <PageLayout title={TITLES[contest]} subtitle={subtitle} backTo="/?tab=vote">
+    {children}
+  </PageLayout>
 );
 
 const VotingPage = ({ contest }: { contest: ContestType }) => {
@@ -197,13 +154,7 @@ const VotingPage = ({ contest }: { contest: ContestType }) => {
           : { title: 'Голосование приостановлено', text: 'Скоро продолжим — загляните позже.' };
     return (
       <Layout contest={contest} subtitle={subtitle}>
-        <div className={s.notice}>
-          <h2 className={s.noticeTitle}>{notice.title}</h2>
-          <p className={s.noticeText}>{notice.text}</p>
-          <Link to="/?tab=vote" className={s.noticeButton}>
-            На главную
-          </Link>
-        </div>
+        <PageNotice {...notice} action={{ to: '/?tab=vote', label: 'На главную' }} />
       </Layout>
     );
   }
@@ -228,10 +179,10 @@ const VotingPage = ({ contest }: { contest: ContestType }) => {
       )}
 
       {works.length === 0 ? (
-        <div className={s.notice}>
-          <h2 className={s.noticeTitle}>Пока нет работ</h2>
-          <p className={s.noticeText}>Работы появятся здесь после проверки организаторами.</p>
-        </div>
+        <PageNotice
+          title="Пока нет работ"
+          text="Работы появятся здесь после проверки организаторами."
+        />
       ) : (
         <div className={s.grid}>
           {works.map((w) => (

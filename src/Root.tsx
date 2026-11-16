@@ -41,6 +41,7 @@ const Root = () => (
 
       {/* Результаты — открыты всем */}
       <Route path="/results" element={<Results />} />
+      <Route path="/results/:year" element={<Results />} />
 
       {/* Адрес возврата VK ID (VITE_VK_REDIRECT_URL): на телефоне сюда приходит код входа */}
       <Route path="/auth/vk" element={<VkCallback />} />

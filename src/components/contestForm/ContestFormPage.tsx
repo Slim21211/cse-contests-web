@@ -5,8 +5,7 @@ import Icon from '../icon/Icon';
 import { supabase } from '../../lib/supabase';
 import {
   useSiteSettings,
-  isSubmissionClosed,
-  formatDay,
+  submissionDates,
 } from '../../settings/siteSettings';
 import { plural } from '../../utils/plural';
 import { CONTEST_TITLES as TITLES, type ContestType } from '../../contests';
@@ -56,14 +55,8 @@ const ContestFormPage = ({
 }: Props) => {
   const { settings } = useSiteSettings();
   const mine = useMyCount(contest, withAside ? userId : undefined, refreshKey);
-  const deadline = settings.submissionDeadline;
-  const closed = isSubmissionClosed(settings);
-
-  const subtitle = deadline
-    ? closed
-      ? `Приём работ завершён ${formatDay(deadline)}`
-      : `Приём работ до ${formatDay(deadline)}`
-    : undefined;
+  const dates = submissionDates(settings);
+  const subtitle = dates ? `Приём работ ${dates.text}` : undefined;
 
   return (
     <div className={s.page}>
@@ -84,10 +77,10 @@ const ContestFormPage = ({
 
           {withAside && (
             <aside className={s.aside}>
-              {deadline && (
+              {dates && (
                 <div className={s.asideDeadline}>
                   <span className={s.asideLabel}>Приём работ</span>
-                  <span className={s.asideValue}>до {formatDay(deadline)}</span>
+                  <span className={s.asideValue}>{dates.text}</span>
                 </div>
               )}
               {mine !== null && mine > 0 && (

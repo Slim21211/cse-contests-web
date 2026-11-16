@@ -4,7 +4,8 @@ import BrandHeader from '../../components/brandHeader/brandHeader';
 import Icon from '../../components/icon/Icon';
 import {
   useSiteSettings,
-  isSubmissionClosed,
+  submissionStatus,
+  submissionDates,
   votingStatus,
   formatDay,
 } from '../../settings/siteSettings';
@@ -97,7 +98,9 @@ const Home = () => {
 
   if (!user) return <AuthRequired />;
 
-  const submissionClosed = isSubmissionClosed(settings);
+  const submission = submissionStatus(settings);
+  const submissionClosed = submission === 'closed';
+  const dates = submissionDates(settings);
   // Фаза голосования по датам (кнопки конкурсов учитываются в карточках).
   const votingPhase = votingStatus(settings, true);
   const votingClosed = votingPhase === 'closed';
@@ -189,15 +192,13 @@ const Home = () => {
                   </span>
                 </span>
               ) : (
-                settings.submissionDeadline && (
+                dates && (
                   <span className={styles.deadline}>
                     <span className={styles.deadlineLabel}>Приём работ</span>
                     <span
                       className={cx(styles.deadlineValue, submissionClosed && styles.deadlineDone)}
                     >
-                      {submissionClosed
-                        ? `завершён ${formatDay(settings.submissionDeadline)}`
-                        : `до ${formatDay(settings.submissionDeadline)}`}
+                      {dates.text}
                     </span>
                   </span>
                 )
@@ -207,6 +208,24 @@ const Home = () => {
             <div className={styles.cards}>
               {CONTESTS.map((c) => {
                 const info = CONTEST_INFO[c];
+                // Админам форма открыта всегда (база это разрешает) — например, для проверки до старта.
+                const canSubmit = submission === 'open' || isAdmin;
+
+                if (!canSubmit && submission === 'upcoming') {
+                  return (
+                    <div key={c} className={cx(styles.card, styles.cardPending)}>
+                      <span className={styles.num}>{info.num}</span>
+                      <span className={styles.body}>
+                        <span className={styles.cardTitle}>{info.title}</span>
+                        <span className={styles.about}>{info.about}</span>
+                        <span className={styles.meta}>
+                          Приём работ с {formatDay(settings.submissionStart!)}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                }
+
                 const body = (
                   <>
                     <span className={styles.num}>{info.num}</span>
@@ -217,7 +236,7 @@ const Home = () => {
                     </span>
                   </>
                 );
-                return submissionClosed ? (
+                return !canSubmit ? (
                   <div key={c} className={cx(styles.card, styles.cardClosed)}>
                     {body}
                     <span className={styles.badge}>Приём окончен</span>

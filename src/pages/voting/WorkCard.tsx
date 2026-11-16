@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Icon from '../../components/icon/Icon';
 import AudioPlayer from './AudioPlayer';
 import LikeButton from './LikeButton';
@@ -12,6 +12,14 @@ interface Props {
   canVote: boolean;
   onLike: (on: boolean) => void;
   onOpen: () => void;
+  /** Метка поверх медиа слева сверху (место в итогах, «Скрыта» в админке). */
+  badge?: ReactNode;
+  /** Справа от подписи вместо лайка (число лайков в итогах). */
+  aside?: ReactNode;
+  /** Под подписью (подробности и действия в админке). */
+  footer?: ReactNode;
+  /** Приглушить карточку (скрытая работа в админке). */
+  dimmed?: boolean;
 }
 
 const DOUBLE_TAP_MS = 280;
@@ -36,7 +44,17 @@ const FileTile = ({ url, label }: { url: string; label: string }) => {
 };
 
 /** Карточка работы в ленте: медиа, подпись, лайк. Двойной тап по фото — лайк. */
-const WorkCard = ({ work, liked, canVote, onLike, onOpen }: Props) => {
+const WorkCard = ({
+  work,
+  liked,
+  canVote,
+  onLike,
+  onOpen,
+  badge,
+  aside,
+  footer,
+  dimmed,
+}: Props) => {
   const [broken, setBroken] = useState(false);
   const [burst, setBurst] = useState(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,19 +144,24 @@ const WorkCard = ({ work, liked, canVote, onLike, onOpen }: Props) => {
   }
 
   return (
-    <article className={s.card}>
-      {media}
+    <article className={dimmed ? `${s.card} ${s.cardDimmed}` : s.card}>
+      <div className={s.mediaWrap}>
+        {media}
+        {badge && <div className={s.badge}>{badge}</div>}
+      </div>
       <div className={s.caption}>
         <div className={s.captionText}>
           <span className={s.title}>{work.title}</span>
           {work.subtitle && <span className={s.subtitle}>{work.subtitle}</span>}
         </div>
-        {work.isMine ? (
-          <span className={s.mineTag}>Ваша работа</span>
-        ) : (
-          canVote && <LikeButton liked={liked} onToggle={() => onLike(!liked)} />
-        )}
+        {aside ??
+          (work.isMine ? (
+            <span className={s.mineTag}>Ваша работа</span>
+          ) : (
+            canVote && <LikeButton liked={liked} onToggle={() => onLike(!liked)} />
+          ))}
       </div>
+      {footer}
     </article>
   );
 };

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { cx } from '../../utils/cx';
+import { formatDay } from '../../settings/siteSettings';
 import s from './contestForm.module.scss';
 
 /** Экран после отправки: форма скрыта, повторно ту же работу не отправить. */
@@ -19,12 +20,14 @@ export const SubmissionSuccess = ({ onSubmitAnother }: { onSubmitAnother: () => 
   </div>
 );
 
-/** Приём работ завершён: вместо формы. */
-export const SubmissionClosed = () => (
+/** Приём работ ещё не начался или уже завершён: вместо формы. */
+export const SubmissionClosed = ({ start }: { start?: Date | null }) => (
   <div className={s.notice}>
-    <h2 className={s.noticeTitle}>Приём работ завершён</h2>
+    <h2 className={s.noticeTitle}>{start ? 'Приём работ ещё не начался' : 'Приём работ завершён'}</h2>
     <p className={s.noticeText}>
-      Идёт обработка работ перед голосованием. Голосование откроется на этом сайте.
+      {start
+        ? `Форма откроется ${formatDay(start)}. Подготовьте работу заранее — фото, видео или документ до 2 ГБ.`
+        : 'Идёт обработка работ перед голосованием. Голосование откроется на этом сайте.'}
     </p>
     <div className={s.noticeActions}>
       <Link to="/" className={s.submit}>

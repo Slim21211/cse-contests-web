@@ -1,0 +1,51 @@
+@use '../../styles/brand' as *;
+
+.tabs {
+  // Ширина вкладок по тексту: «Индивидуальный» длиннее остальных и иначе не влезает на телефоне.
+  display: flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: $soft;
+
+  @media (min-width: $desktop) {
+    align-self: flex-start;
+  }
+}
+
+.tab {
+  flex: 1 1 auto;
+  height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: $muted;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 380px) {
+    padding: 0 6px;
+    font-size: 14px;
+  }
+
+  @media (min-width: $desktop) {
+    padding: 0 22px;
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(232, 73, 14, 0.4);
+    outline-offset: -1px;
+  }
+}
+
+.tabActive {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(79, 44, 29, 0.14);
+  color: $brown;
+  font-weight: 600;
+}
