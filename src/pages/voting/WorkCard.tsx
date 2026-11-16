@@ -48,7 +48,7 @@ const WorkCard = ({ work, liked, canVote, onLike, onOpen }: Props) => {
     if (tapTimer.current) {
       clearTimeout(tapTimer.current);
       tapTimer.current = null;
-      if (canVote) {
+      if (canVote && !work.isMine) {
         if (!liked) onLike(true);
         setBurst((n) => n + 1);
       }
@@ -133,7 +133,11 @@ const WorkCard = ({ work, liked, canVote, onLike, onOpen }: Props) => {
           <span className={s.title}>{work.title}</span>
           {work.subtitle && <span className={s.subtitle}>{work.subtitle}</span>}
         </div>
-        {canVote && <LikeButton liked={liked} onToggle={() => onLike(!liked)} />}
+        {work.isMine ? (
+          <span className={s.mineTag}>Ваша работа</span>
+        ) : (
+          canVote && <LikeButton liked={liked} onToggle={() => onLike(!liked)} />
+        )}
       </div>
     </article>
   );

@@ -17,8 +17,7 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
     let cancelled = false;
     supabase
       .from(`${contest}_votes`)
-      .select('submission_id')
-      .eq('vk_user_id', userId)
+      .select('submission_id') // база отдаёт только свои лайки
       .then(({ data, error: err }) => {
         if (cancelled) return;
         if (err) console.error('Лайки не загрузились:', err);
@@ -48,16 +47,12 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
 
       try {
         if (on) {
+          // vk_user_id база берёт из JWT; повторный лайк (другая вкладка) — не ошибка.
           const { error: err } = await supabase
             .from(`${contest}_votes`)
             .upsert(
-              {
-                submission_id: id,
-                vk_user_id: userId,
-                rating: 1,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'submission_id,vk_user_id' },
+              { submission_id: id, vk_user_id: userId },
+              { onConflict: 'submission_id,vk_user_id', ignoreDuplicates: true },
             );
           if (err) throw err;
         } else {
@@ -68,13 +63,19 @@ export const useLikes = (contest: ContestType, userId: number | undefined, canVo
             .eq('vk_user_id', userId)
             .select('submission_id');
           if (err) throw err;
-          // Без строки в ответе база молча не дала удалить (нет политики на delete).
+          // Без строки в ответе база молча не дала удалить (голосование уже закрыто).
           if (!data?.length) throw new Error('delete returned no rows');
         }
       } catch (err) {
         console.error('Лайк не сохранился:', err);
         apply(id, !on);
-        setError('Не удалось сохранить лайк. Проверьте интернет и попробуйте ещё раз.');
+        // 42501 — RLS не пустила: голосование закрыли, пока страница была открыта.
+        const denied = (err as { code?: string })?.code === '42501';
+        setError(
+          denied
+            ? 'Лайк не сохранился: голосование сейчас закрыто. Обновите страницу.'
+            : 'Не удалось сохранить лайк. Проверьте интернет и попробуйте ещё раз.',
+        );
       } finally {
         pending.current.delete(id);
       }

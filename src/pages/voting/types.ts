@@ -7,6 +7,8 @@ export interface Work {
   posterUrl?: string | null;
   rotation: number;
   kind: WorkKind;
+  /** Своя работа: лайкнуть нельзя. */
+  isMine: boolean;
   /** Крупная строка: название работы или команды. */
   title: string;
   /** Вторая строка: автор, возраст, город. */

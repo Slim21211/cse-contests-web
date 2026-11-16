@@ -472,6 +472,18 @@ $like-soft: #fdebe3;
   color: $muted;
 }
 
+/* Вместо лайка у своей работы. */
+.mineTag {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: $like-soft;
+  color: $brand-text;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .like {
   flex: none;
   width: 48px;

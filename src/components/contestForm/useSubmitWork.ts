@@ -42,8 +42,7 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
         ...row,
         file_url: fileUrl,
         ...(posterUrl ? { poster_url: posterUrl } : {}),
-        vk_user_id: userId,
-        is_active: true,
+        // vk_user_id, сезон и is_active база ставит сама; файл обязан лежать в папке автора.
       });
 
       if (insertError) {
@@ -57,7 +56,11 @@ export const useSubmitWork = (contest: ContestType, userId: number | undefined) 
           ...getConnectionInfo(),
         });
         throw {
-          user: 'Ошибка сохранения данных в базу. Возможно, неверный формат одного из полей.',
+          // 42501 — RLS: чаще всего приём уже закрыт или истекла сессия.
+          user:
+            insertError.code === '42501'
+              ? 'Заявку не удалось сохранить: приём работ закрыт или нужно войти заново.'
+              : 'Ошибка сохранения данных в базу. Возможно, неверный формат одного из полей.',
           log: `Supabase Insert Error: ${insertError.message}`,
         } satisfies SubmitError;
       }

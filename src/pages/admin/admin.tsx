@@ -11,6 +11,7 @@ import FileRenderer from '../../components/fileRenderer/fileRenderer';
 import Loader from '../../components/loader/loader';
 import SiteSettingsPanel from './SiteSettingsPanel';
 import { formatAge } from '../../utils/age';
+import { festiveYear } from '../../utils/festiveYear';
 import '../../styles/admin.scss';
 import ScrollToTopButton from '../../components/scrollToTopButton/scrollToTopButton';
 
@@ -69,9 +70,11 @@ const Admin = () => {
 
       // Работы
       const tableName = `${activeTab}_contest`;
+      // Только текущий сезон; прошлые остаются в базе.
       const { data: works } = await supabase
         .from(tableName)
         .select('*')
+        .eq('season', festiveYear())
         .order('created_at', { ascending: false });
 
       setSubmissions(works || []);

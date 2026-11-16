@@ -60,17 +60,11 @@ export const useHomeStats = (userId: number | undefined) => {
         CONTESTS.map(async (c) => {
           const head = { count: 'exact' as const, head: true };
           const [total, mine, likes] = await Promise.all([
-            count(supabase.from(`${c}_contest`).select('id', head).eq('is_active', true)),
-            count(
-              supabase
-                .from(`${c}_contest`)
-                .select('id', head)
-                .eq('is_active', true)
-                .eq('vk_user_id', userId),
-            ),
-            count(
-              supabase.from(`${c}_votes`).select('submission_id', head).eq('vk_user_id', userId),
-            ),
+            // <конкурс>_works — только активные работы текущего сезона.
+            count(supabase.from(`${c}_works`).select('id', head)),
+            count(supabase.from(`${c}_works`).select('id', head).eq('is_mine', true)),
+            // База отдаёт только свои лайки.
+            count(supabase.from(`${c}_votes`).select('submission_id', head)),
           ]);
           return [
             c,

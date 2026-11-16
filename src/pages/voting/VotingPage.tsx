@@ -35,6 +35,7 @@ const toWork = (contest: ContestType, row: Row): Work => {
     posterUrl: row.poster_url,
     rotation: row.rotation ?? 0,
     kind: kindOf(row.file_url),
+    isMine: row.is_mine === true,
   };
   if (contest === 'child') {
     const r = row as ChildContestSubmission;
@@ -116,7 +117,8 @@ const VotingPage = ({ contest }: { contest: ContestType }) => {
         .select('voting_enabled')
         .eq('contest_type', contest)
         .maybeSingle(),
-      supabase.from(`${contest}_contest`).select('*').eq('is_active', true),
+      // View отдаёт только активные работы текущего сезона и без служебных полей.
+      supabase.from(`${contest}_works`).select('*'),
     ]).then(([settingsRes, worksRes]) => {
       if (cancelled) return;
       setEnabled(settingsRes.data?.voting_enabled ?? true);

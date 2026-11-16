@@ -29,10 +29,9 @@ const useMyCount = (
     if (!userId) return;
     let cancelled = false;
     supabase
-      .from(`${contest}_contest`)
+      .from(`${contest}_works`) // только активные работы текущего сезона
       .select('id', { count: 'exact', head: true })
-      .eq('is_active', true)
-      .eq('vk_user_id', userId)
+      .eq('is_mine', true)
       .then(({ count: c }) => {
         if (!cancelled) setCount(c ?? 0);
       });

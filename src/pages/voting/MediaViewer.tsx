@@ -80,7 +80,9 @@ const MediaViewer = ({ work, liked, canVote, onLike, onClose }: Props) => {
           <span className={s.viewerTitle}>{work.title}</span>
           {work.subtitle && <span className={s.viewerSub}>{work.subtitle}</span>}
         </div>
-        {canVote && <LikeButton liked={liked} onToggle={() => onLike(!liked)} variant="dark" />}
+        {canVote && !work.isMine && (
+          <LikeButton liked={liked} onToggle={() => onLike(!liked)} variant="dark" />
+        )}
       </div>
     </div>,
     document.body,
